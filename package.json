@@ -1,5 +1,5 @@
 {
-  "name": "@misiki/bigcommerce-connector",
+  "name": "@misiki/vendure-connector",
   "version": "2.0.29",
   "description": "API Connector for Litekart",
   "type": "module",
