@@ -183,7 +183,15 @@ export class BaseService {
 
     const result = await response.json()
     if (result.errors && result.errors.length > 0) {
-      throw new Error(result.errors[0].message || 'GraphQL Error')
+      const errorMessage = result.errors[0].message || 'GraphQL Error'
+      if (errorMessage === 'error.no-customer-found-for-current-user') {
+        this.setAuthToken(undefined)
+        if (typeof window !== 'undefined') {
+          window.document.cookie = 'me=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+          window.document.cookie = 'connect.sid=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
+      }
+      throw new Error(errorMessage)
     }
 
     return result.data as T

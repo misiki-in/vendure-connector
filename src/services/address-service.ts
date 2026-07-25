@@ -2,6 +2,41 @@ import type { Address } from '../types/address-types'
 import type { PaginatedResponse } from '../types/pagination-types'
 import { BaseService } from './base.service'
 
+const ACTIVE_CUSTOMER_ADDRESSES_QUERY = `
+  query ActiveCustomerAddresses {
+    activeCustomer {
+      id
+      addresses {
+        id fullName company streetLine1 streetLine2 city province postalCode country { code } phoneNumber defaultShippingAddress defaultBillingAddress createdAt updatedAt
+      }
+    }
+  }
+`;
+
+const CREATE_CUSTOMER_ADDRESS_MUTATION = `
+  mutation CreateCustomerAddress($input: CreateAddressInput!) {
+    createCustomerAddress(input: $input) {
+      id fullName company streetLine1 streetLine2 city province postalCode country { code } phoneNumber defaultShippingAddress defaultBillingAddress createdAt updatedAt
+    }
+  }
+`;
+
+const UPDATE_CUSTOMER_ADDRESS_MUTATION = `
+  mutation UpdateCustomerAddress($input: UpdateAddressInput!) {
+    updateCustomerAddress(input: $input) {
+      id fullName company streetLine1 streetLine2 city province postalCode country { code } phoneNumber defaultShippingAddress defaultBillingAddress createdAt updatedAt
+    }
+  }
+`;
+
+const DELETE_CUSTOMER_ADDRESS_MUTATION = `
+  mutation DeleteCustomerAddress($id: ID!) {
+    deleteCustomerAddress(id: $id) {
+      success
+    }
+  }
+`;
+
 /**
  * Parameters for listing addresses with pagination and filtering
  */
@@ -29,21 +64,13 @@ type UpdateAddressParams = Partial<Omit<Address, 'id' | 'userId' | 'createdAt' |
 
 /**
  * AddressService provides functionality for managing user addresses
- * in the Litekart platform.
- *
- * This service helps with:
- * - Retrieving user addresses with pagination and filtering
- * - Creating new addresses for the current user
- * - Updating existing address information
- * - Deleting addresses that are no longer needed
+ * in the Litekart platform, now adapted for Vendure API.
  */
 export class AddressService extends BaseService {
   private static instance: AddressService
 
   /**
    * Get the singleton instance
-   *
-   * @returns {AddressService} The singleton instance of AddressService
    */
   static getInstance(): AddressService {
     if (!AddressService.instance) {
@@ -52,168 +79,136 @@ export class AddressService extends BaseService {
     return AddressService.instance
   }
 
-  /**
-   * Fetches a paginated list of addresses with optional filtering
-   *
-   * @param {object} options - The options for filtering and pagination
-   * @param {number} [options.page=1] - The page number to fetch
-   * @param {string} [options.q=''] - Search query for filtering addresses
-   * @param {string} [options.sort='-createdAt'] - Sort order for the results
-   * @param {string} [options.user=''] - Filter addresses by user ID
-   * @returns {Promise<PaginatedResponse<Address>>} Paginated list of addresses
-   * @api {get} /api/address List addresses
-   *
-   * @example
-   * // Get the second page of addresses sorted by creation date
-   * const addresses = await addressService.list({ page: 2, sort: '-createdAt' });
-   */
+  private mapVendureAddress(vendureAddress: any, customerId: string | null = null): Address {
+    if (!vendureAddress) return {} as Address;
+    
+    const names = (vendureAddress.fullName || '').split(' ');
+    const firstName = names[0] || '';
+    const lastName = names.slice(1).join(' ') || '';
 
+    return {
+      id: vendureAddress.id,
+      active: true,
+      address_1: vendureAddress.streetLine1 || null,
+      address_2: vendureAddress.streetLine2 || null,
+      city: vendureAddress.city || null,
+      country: vendureAddress.country?.code || null,
+      countryCode: vendureAddress.country?.code || null,
+      deliveryInstructions: null,
+      email: null,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      isPrimary: vendureAddress.defaultShippingAddress || vendureAddress.defaultBillingAddress || false,
+      isResidential: true,
+      lat: null,
+      lng: null,
+      locality: null,
+      phone: vendureAddress.phoneNumber || null,
+      state: vendureAddress.province || null,
+      userId: customerId,
+      zip: vendureAddress.postalCode || null,
+      createdAt: vendureAddress.createdAt || new Date().toISOString(),
+      updatedAt: vendureAddress.updatedAt || new Date().toISOString()
+    }
+  }
 
   /**
-   * Fetches a paginated list of addresses with optional filtering
-   * 
-   * @param {ListAddressesParams} params - The parameters for filtering and pagination
-   * @returns {Promise<PaginatedResponse<Address>>} Paginated list of addresses
-   * @throws {Error} If the request fails
-   * 
-   * @example
-   * // Get the second page of addresses sorted by creation date
-   * const addresses = await addressService.list({ page: 2, sort: '-createdAt' });
+   * Fetches a paginated list of addresses
    */
   async list(params: ListAddressesParams = {}): Promise<PaginatedResponse<Address>> {
-    const { 
-      page = 1, 
-      q = '', 
-      sort = '-createdAt', 
-      user = '' 
-    } = params
+    const res = await this.query<any>('/shop-api', ACTIVE_CUSTOMER_ADDRESSES_QUERY);
+    const customer = res?.activeCustomer;
+    if (!customer || !customer.addresses) {
+      return { data: [], count: 0, pageSize: 20, noOfPage: 1, page: 1 };
+    }
+    const addresses = customer.addresses.map((a: any) => this.mapVendureAddress(a, customer.id));
     
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      q,
-      sort,
-      user
-    }).toString()
-    
-    return this.get<PaginatedResponse<Address>>(`/api/address?${queryParams}`)
+    return {
+      data: addresses,
+      count: addresses.length,
+      pageSize: addresses.length || 20,
+      noOfPage: 1,
+      page: 1
+    };
   }
 
   /**
    * Fetches a single address by ID
-   *
-   * @param {string} id - The ID of the address to fetch
-   * @returns {Promise<Address>} The address data
-   * @api {get} /api/address/:id Get address by ID
-   *
-   * @example
-   * // Fetch a specific address
-   * const address = await addressService.fetchAddress('123');
    */
   async fetchAddress(id: string): Promise<Address> {
-    return this.get(`/api/address/${id}`) as Promise<Address>
+    const res = await this.query<any>('/shop-api', ACTIVE_CUSTOMER_ADDRESSES_QUERY);
+    const customer = res?.activeCustomer;
+    const vendureAddress = customer?.addresses?.find((a: any) => a.id === id);
+    if (!vendureAddress) throw new Error(`Address with id ${id} not found`);
+    return this.mapVendureAddress(vendureAddress, customer?.id);
   }
 
   /**
    * Creates a new address for the current user
-   *
-   * @param {Omit<Address, 'id'>} address - The address data to save
-   * @returns {Promise<Address>} The created address with ID
-   * @api {post} /api/address/me Create new address
-   *
-   * @example
-   * // Create a new address
-   * const newAddress = await addressService.saveAddress({
-   *   firstName: 'John',
-   *   lastName: 'Doe',
-   *   address: '123 Main St',
-   *   city: 'Anytown',
-   *   zip: '12345',
-   *   country: 'US'
-   * });
-   */
-  /**
-   * Creates a new address for the current user
-   * 
-   * @param {Omit<Address, 'id' | 'createdAt' | 'updatedAt'>} address - The address data to save
-   * @returns {Promise<Address>} The created address with ID and timestamps
-   * @throws {Error} If the request fails or address creation fails
-   * 
-   * @example
-   * // Create a new address
-   * const newAddress = await addressService.saveAddress({
-   *   firstName: 'John',
-   *   lastName: 'Doe',
-   *   address_1: '123 Main St',
-   *   city: 'Anytown',
-   *   state: 'CA',
-   *   zip: '12345',
-   *   country: 'US',
-   *   isPrimary: false,
-   *   isResidential: true
-   * });
    */
   async saveAddress(address: CreateAddressParams): Promise<Address> {
-    return this.post<Address>('/api/address/me', address)
+    const fullName = `${address.firstName || ''} ${address.lastName || ''}`.trim();
+    
+    const input = {
+      fullName: fullName,
+      company: '',
+      streetLine1: address.address_1 || '',
+      streetLine2: address.address_2 || '',
+      city: address.city || '',
+      province: address.state || '',
+      postalCode: address.zip || '',
+      countryCode: address.countryCode || address.country || 'IN',
+      phoneNumber: address.phone || '',
+      defaultShippingAddress: address.isPrimary || false,
+      defaultBillingAddress: address.isPrimary || false
+    };
+
+    const res = await this.query<any>('/shop-api', CREATE_CUSTOMER_ADDRESS_MUTATION, { input });
+    return this.mapVendureAddress(res.createCustomerAddress);
   }
 
   /**
    * Updates an existing address
-   *
-   * @param {string} id - The ID of the address to update
-   * @param {Partial<Address>} address - The address fields to update
-   * @returns {Promise<Address>} The updated address
-   * @api {put} /api/address/me/:id Update address
-   *
-   * @example
-   * // Update an address
-   * const updatedAddress = await addressService.editAddress('123', {
-   *   city: 'New City',
-   *   zip: '54321'
-   * });
-   */
-  /**
-   * Updates an existing address
-   * 
-   * @param {string} id - The ID of the address to update
-   * @param {Partial<Omit<Address, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>} address - The address fields to update
-   * @returns {Promise<Address>} The updated address
-   * @throws {Error} If the request fails or address update fails
-   * 
-   * @example
-   * // Update an address
-   * const updatedAddress = await addressService.editAddress('123', {
-   *   city: 'New City',
-   *   zip: '54321'
-   * });
    */
   async editAddress(id: string, address: UpdateAddressParams): Promise<Address> {
-    return this.put<Address>(`/api/address/me/${id}`, address)
+    const input: any = { id };
+    
+    if (address.firstName !== undefined || address.lastName !== undefined) {
+      let fName = address.firstName;
+      let lName = address.lastName;
+      if (fName === undefined || lName === undefined) {
+        const existing = await this.fetchAddress(id).catch(() => null);
+        if (existing) {
+          fName = fName !== undefined ? fName : existing.firstName;
+          lName = lName !== undefined ? lName : existing.lastName;
+        }
+      }
+      input.fullName = `${fName || ''} ${lName || ''}`.trim();
+    }
+    
+    if (address.address_1 !== undefined) input.streetLine1 = address.address_1 || '';
+    if (address.address_2 !== undefined) input.streetLine2 = address.address_2 || '';
+    if (address.city !== undefined) input.city = address.city || '';
+    if (address.state !== undefined) input.province = address.state || '';
+    if (address.zip !== undefined) input.postalCode = address.zip || '';
+    if (address.countryCode !== undefined || address.country !== undefined) {
+      input.countryCode = address.countryCode || address.country || 'IN';
+    }
+    if (address.phone !== undefined) input.phoneNumber = address.phone || '';
+    if (address.isPrimary !== undefined) {
+      input.defaultShippingAddress = address.isPrimary;
+      input.defaultBillingAddress = address.isPrimary;
+    }
+
+    const res = await this.query<any>('/shop-api', UPDATE_CUSTOMER_ADDRESS_MUTATION, { input });
+    return this.mapVendureAddress(res.updateCustomerAddress);
   }
 
   /**
    * Deletes an address
-   *
-   * @param {string} id - The ID of the address to delete
-   * @returns {Promise<any>} The deletion response
-   * @api {delete} /api/address/:id Delete address
-   *
-   * @example
-   * // Delete an address
-   * await addressService.deleteAddress('123');
-   */
-  /**
-   * Deletes an address
-   * 
-   * @param {string} id - The ID of the address to delete
-   * @returns {Promise<void>} Resolves when the address is successfully deleted
-   * @throws {Error} If the request fails or address deletion fails
-   * 
-   * @example
-   * // Delete an address
-   * await addressService.deleteAddress('123');
    */
   async deleteAddress(id: string): Promise<void> {
-    await this.delete<void>(`/api/address/${id}`)
+    await this.query<any>('/shop-api', DELETE_CUSTOMER_ADDRESS_MUTATION, { id });
   }
 }
 

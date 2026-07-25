@@ -38,7 +38,38 @@ export class AuthService extends BaseService {
    * const currentUser = await authService.getMe();
    */
   async getMe() {
-    return this.get('/api/admin/users/me') as Promise<User>
+    const document = `
+      query GetActiveCustomer {
+        activeCustomer {
+          id
+          firstName
+          lastName
+          emailAddress
+          phoneNumber
+        }
+      }
+    `
+    const data = await this.query<{ activeCustomer: any }>('/shop-api', document)
+    const customer = data?.activeCustomer
+    if (!customer) return null as unknown as User
+    
+    const user = {
+      userId: customer.id,
+      phone: customer.phoneNumber || null,
+      email: customer.emailAddress,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      avatar: null,
+      role: 'USER',
+      storeId: null
+    }
+
+    if (typeof window !== 'undefined') {
+      window.document.cookie = `me=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=31536000`
+      window.document.cookie = `connect.sid=vendure-session-${customer.id}; path=/; max-age=31536000`
+    }
+
+    return user as unknown as User
   }
 
   /**
@@ -53,7 +84,7 @@ export class AuthService extends BaseService {
    * const user = await authService.getUser('123');
    */
   async getUser(id: string): Promise<User> {
-    return this.get<User>('/api/users/' + id)
+    throw new Error('getUser by ID is not supported in Vendure Shop API')
   }
 
   /**
@@ -69,10 +100,22 @@ export class AuthService extends BaseService {
    * const result = await authService.verifyEmail('user@example.com', 'verification-token');
    */
   async verifyEmail(email: string, token: string) {
-    return this.post('/api/auth/verify-email', {
-      email,
-      token
-    }) as Promise<verifyEmail>
+    const document = `
+      mutation VerifyCustomerAccount($token: String!) {
+        verifyCustomerAccount(token: $token) {
+          ... on CurrentUser {
+            id
+            identifier
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, { token })
+    return data?.verifyCustomerAccount as verifyEmail
   }
 
   /**
@@ -117,14 +160,34 @@ export class AuthService extends BaseService {
     passwordConfirmation: string
     cartId?: string | null
   }) {
-    return this.post('/api/auth/signup', {
-      firstName,
-      lastName,
-      phone,
-      email,
-      password,
-      cartId
-    }) as Promise<User>
+    const document = `
+      mutation RegisterCustomerAccount($input: RegisterCustomerInput!) {
+        registerCustomerAccount(input: $input) {
+          ... on Success {
+            success
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      input: {
+        emailAddress: email,
+        firstName,
+        lastName,
+        password,
+        phoneNumber: phone
+      }
+    })
+    
+    if (data?.registerCustomerAccount?.errorCode) {
+      throw new Error(data.registerCustomerAccount.message)
+    }
+    
+    return this.login({ email, password, cartId })
   }
 
   /**
@@ -177,17 +240,7 @@ export class AuthService extends BaseService {
     role: string
     origin: string
   }) {
-    return this.post('/api/auth/join-as-vendor', {
-      firstName,
-      lastName,
-      businessName,
-      phone,
-      email,
-      password,
-      cartId,
-      role,
-      origin
-    }) as Promise<User>
+    throw new Error('Not implemented for Vendure')
   }
 
   /**
@@ -233,15 +286,7 @@ export class AuthService extends BaseService {
     password: string
     origin: string
   }) {
-    return this.post('/api/auth/join-as-admin', {
-      firstName,
-      lastName,
-      businessName,
-      phone,
-      email,
-      password,
-      origin
-    }) as Promise<User>
+    throw new Error('Not implemented for Vendure')
   }
 
   /**
@@ -270,11 +315,30 @@ export class AuthService extends BaseService {
     password: string
     cartId?: string | null
   }) {
-    return this.post('/api/auth/login', {
-      email,
-      password,
-      cartId
-    }) as Promise<User>
+    const document = `
+      mutation Login($username: String!, $password: String!) {
+        login(username: $username, password: $password) {
+          ... on CurrentUser {
+            id
+            identifier
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      username: email,
+      password
+    })
+    
+    if (data?.login?.errorCode) {
+      throw new Error(data.login.message)
+    }
+    
+    return this.getMe()
   }
 
   /**
@@ -300,10 +364,23 @@ export class AuthService extends BaseService {
     email: string
     referrer: string
   }) {
-    return this.post('/api/auth/forgot-password', {
-      email,
-      referrer
-    }) as Promise<User>
+    const document = `
+      mutation RequestPasswordReset($emailAddress: String!) {
+        requestPasswordReset(emailAddress: $emailAddress) {
+          ... on Success {
+            success
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      emailAddress: email
+    })
+    return data?.requestPasswordReset as User
   }
 
   /**
@@ -323,7 +400,24 @@ export class AuthService extends BaseService {
    * });
    */
   async changePassword(body: { old: string; password: string }) {
-    return this.post('/api/admin/auth/change-password', body) as Promise<User>
+    const document = `
+      mutation UpdateCustomerPassword($currentPassword: String!, $newPassword: String!) {
+        updateCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+          ... on Success {
+            success
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      currentPassword: body.old,
+      newPassword: body.password
+    })
+    return data?.updateCustomerPassword as User
   }
 
   /**
@@ -353,11 +447,25 @@ export class AuthService extends BaseService {
     token: string
     password: string
   }) {
-    return this.post('/api/auth/reset-password', {
-      userId,
+    const document = `
+      mutation ResetPassword($token: String!, $password: String!) {
+        resetPassword(token: $token, password: $password) {
+          ... on CurrentUser {
+            id
+            identifier
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
       token,
       password
-    }) as Promise<User>
+    })
+    return data?.resetPassword as User
   }
 
   /**
@@ -375,7 +483,7 @@ export class AuthService extends BaseService {
    * });
    */
   async getOtp({ phone }: { phone: string }) {
-    return this.post('/api/auth/get-otp', { phone }) as Promise<User>
+    throw new Error('Not implemented for Vendure')
   }
 
   /**
@@ -395,7 +503,7 @@ export class AuthService extends BaseService {
    * });
    */
   async verifyOtp({ phone, otp }: { phone: string; otp: string }) {
-    return this.post('/api/auth/verify-otp', { phone, otp }) as Promise<User>
+    throw new Error('Not implemented for Vendure')
   }
 
   /**
@@ -409,7 +517,19 @@ export class AuthService extends BaseService {
    * await authService.logout();
    */
   async logout() {
-    return this.delete('/api/auth/logout')
+    const document = `
+      mutation Logout {
+        logout {
+          success
+        }
+      }
+    `
+    const res = await this.query<any>('/shop-api', document)
+    if (typeof window !== 'undefined') {
+      window.document.cookie = 'me=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      window.document.cookie = 'connect.sid=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+    return res
   }
 
   /**
@@ -451,13 +571,26 @@ export class AuthService extends BaseService {
     phone: string
     avatar?: string
   }) {
-    return this.put('/api/users/' + id, {
-      firstName,
-      lastName,
-      email,
-      phone,
-      avatar
-    }) as Promise<User>
+    const document = `
+      mutation UpdateCustomer($input: UpdateCustomerInput!) {
+        updateCustomer(input: $input) {
+          id
+          firstName
+          lastName
+          emailAddress
+          phoneNumber
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      input: {
+        firstName,
+        lastName,
+        emailAddress: email,
+        phoneNumber: phone
+      }
+    })
+    return data?.updateCustomer as User
   }
 }
 

@@ -2,50 +2,89 @@ import type { PaymentMethod, PaginatedResponse } from './../types'
 
 import { BaseService } from './base.service'
 
+const ELIGIBLE_PAYMENT_METHODS_QUERY = `
+  query GetEligiblePaymentMethods {
+    eligiblePaymentMethods {
+      id
+      code
+      name
+      description
+      isEligible
+      eligibilityMessage
+    }
+  }
+`;
+
 /**
- * PaymentMethodService provides functionality for working with specific resources
- * in the Litekart API.
- *
- * This service helps with:
- * - Main functionality point 1
- * - Main functionality point 2
- * - Main functionality point 3
+ * PaymentMethodService provides functionality for working with payment methods
+ * in the Litekart API, now adapted for Vendure API.
  */
 export class PaymentMethodService extends BaseService {
   private static instance: PaymentMethodService
 
   /**
    * Get the singleton instance
+   * 
+   * @returns {PaymentMethodService} The singleton instance of PaymentMethodService
    */
-  /**
- * Get the singleton instance
- * 
- * @returns {PaymentMethodService} The singleton instance of PaymentMethodService
- */
   static getInstance(): PaymentMethodService {
     if (!PaymentMethodService.instance) {
       PaymentMethodService.instance = new PaymentMethodService()
     }
     return PaymentMethodService.instance
   }
+
+  private mapVendurePaymentMethod(quote: any): any {
+    if (!quote) return {};
+
+    let rawCode = (quote.code || '').toLowerCase();
+    let name = quote.name || '';
+    
+    // Map Vendure's default standard payment to COD
+    if (rawCode === 'standard-payment') {
+      rawCode = 'COD';
+      if (name.toLowerCase() === 'standard payment') {
+        name = 'COD';
+      }
+    }
+
+    const ext = rawCode === 'cashfree' ? 'svg' : 'png';
+
+    return {
+      name: name,
+      description: quote.description || '',
+      apiKey: null,
+      isTest: false,
+      code: rawCode,
+      img: `/static/payment/${rawCode}.${ext}`
+    }
+  }
+
   /**
- * Fetches PaymentMethod from the API
- * 
- * @param {Object} options - The request options
- * @param {number} [options.page=1] - The page number for pagination
- * @param {string} [options.q=''] - Search query string
- * @param {string} [options.sort='-createdAt'] - Sort order
- * @returns {Promise<any>} The requested data
- * @api {get} /api/paymentmethod Get paymentmethod
- * 
- * @example
- * // Example usage
- * const result = await paymentmethodService.list({ page: 1 });
- */
+   * Fetches PaymentMethod from the API (Mapped to Vendure's eligiblePaymentMethods)
+   * 
+   * @param {Object} options - The request options
+   * @param {number} [options.page=1] - The page number for pagination
+   * @param {string} [options.q=''] - Search query string
+   * @param {string} [options.sort='-createdAt'] - Sort order
+   * @returns {Promise<any>} The requested data
+   */
   async list({ page = 1, q = '', sort = '-createdAt' }) {
-    return this.get<PaginatedResponse<PaymentMethod>>(
-      `/api/payment-methods?page=${page}&q=${q}&sort=${sort}`
-    )
+    const res = await this.query<any>('/shop-api', ELIGIBLE_PAYMENT_METHODS_QUERY);
+    const quotes = res?.eligiblePaymentMethods || [];
+
+    // Filter to only include eligible methods and map to Litekart type
+    const mappedMethods = quotes
+      .filter((q: any) => q.isEligible)
+      .map((q: any) => this.mapVendurePaymentMethod(q));
+
+    return {
+      data: mappedMethods,
+      count: mappedMethods.length,
+      pageSize: mappedMethods.length || 20,
+      noOfPage: 1,
+      page: 1
+    } as PaginatedResponse<PaymentMethod>
   }
 }
 

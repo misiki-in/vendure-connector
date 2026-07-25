@@ -1,11 +1,120 @@
-import type { Address, Cart } from './../types'
+import type { Address, Cart, CartLineItem } from './../types'
 const REGION_ID = ''
 
 import { BaseService } from './base.service'
 
+const ACTIVE_ORDER_QUERY = `
+  query ActiveOrder {
+    activeOrder {
+      id code state couponCodes subTotal subTotalWithTax shipping shippingWithTax total totalWithTax currencyCode createdAt updatedAt
+      customer { id emailAddress firstName lastName phoneNumber }
+      shippingAddress { fullName company streetLine1 streetLine2 city province postalCode countryCode phoneNumber }
+      billingAddress { fullName company streetLine1 streetLine2 city province postalCode countryCode phoneNumber }
+      shippingLines { shippingMethod { id } }
+      lines { id quantity linePrice linePriceWithTax unitPrice unitPriceWithTax 
+        productVariant { id sku name price 
+          product { id slug featuredAsset { preview } }
+          featuredAsset { preview }
+        }
+      }
+    }
+  }
+`;
+
+const ADD_ITEM_MUTATION = `
+  mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
+    addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const ADJUST_ORDER_LINE_MUTATION = `
+  mutation AdjustOrderLine($orderLineId: ID!, $quantity: Int!) {
+    adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const REMOVE_ORDER_LINE_MUTATION = `
+  mutation RemoveOrderLine($orderLineId: ID!) {
+    removeOrderLine(orderLineId: $orderLineId) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const APPLY_COUPON_MUTATION = `
+  mutation ApplyCouponCode($couponCode: String!) {
+    applyCouponCode(couponCode: $couponCode) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const REMOVE_COUPON_MUTATION = `
+  mutation RemoveCouponCode($couponCode: String!) {
+    removeCouponCode(couponCode: $couponCode) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const SET_SHIPPING_ADDRESS_MUTATION = `
+  mutation SetOrderShippingAddress($input: CreateAddressInput!) {
+    setOrderShippingAddress(input: $input) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const SET_BILLING_ADDRESS_MUTATION = `
+  mutation SetOrderBillingAddress($input: CreateAddressInput!) {
+    setOrderBillingAddress(input: $input) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const SET_CUSTOMER_FOR_ORDER_MUTATION = `
+  mutation SetCustomerForOrder($input: CreateCustomerInput!) {
+    setCustomerForOrder(input: $input) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const TRANSITION_ORDER_TO_STATE_MUTATION = `
+  mutation TransitionOrderToState($state: String!) {
+    transitionOrderToState(state: $state) {
+      ... on Order { id }
+      ... on OrderStateTransitionError { errorCode message transitionError fromState toState }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const SET_ORDER_SHIPPING_METHOD_MUTATION = `
+  mutation SetOrderShippingMethod($shippingMethodId: [ID!]!) {
+    setOrderShippingMethod(shippingMethodId: $shippingMethodId) {
+      ... on Order { id }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
 /**
  * CartService provides functionality for managing shopping carts
- * in the Litekart platform.
+ * in the Litekart platform, now powered by Vendure.
  *
  * This service helps with:
  * - Retrieving cart data and contents
@@ -27,18 +136,142 @@ export class CartService extends BaseService {
     return CartService.instance
   }
 
+  private mapVendureOrder(order: any): Cart {
+    if (!order) return {} as Cart;
+    const lines = order.lines || [];
+    const totalQty = lines.reduce((sum: number, l: any) => sum + l.quantity, 0);
+
+    const mapAddress = (addr: any) => {
+      if (!addr || !addr.streetLine1) return null;
+      const names = (addr.fullName || '').split(' ');
+      return {
+        id: `addr_${order.id}`,
+        address_1: addr.streetLine1 || '',
+        address_2: addr.streetLine2 || '',
+        city: addr.city || '',
+        deliveryInstructions: null,
+        email: null,
+        phone: addr.phoneNumber || order.customer?.phoneNumber || '',
+        firstName: names[0] || '',
+        isPrimary: false,
+        isResidential: true,
+        lastName: names.slice(1).join(' ') || '',
+        state: addr.province || '',
+        countryCode: addr.countryCode || 'IN',
+        userId: order.customer?.id || null,
+        zip: addr.postalCode || ''
+      };
+    };
+
+    const mappedShippingAddress = mapAddress(order.shippingAddress);
+    const mappedBillingAddress = mapAddress(order.billingAddress);
+    
+    return {
+      id: order.id || '',
+      email: order.customer?.emailAddress || null,
+      phone: order.customer?.phoneNumber || null,
+      billingAddressId: mappedBillingAddress ? mappedBillingAddress.id : null,
+      shippingAddressId: mappedShippingAddress ? mappedShippingAddress.id : null,
+      regionId: REGION_ID || null,
+      userId: order.customer?.id || null,
+      couponCode: order.couponCodes?.[0] || null,
+      discountAmount: (order.subTotalWithTax + order.shippingWithTax) - order.totalWithTax,
+      couponAppliedDate: null,
+      needAddress: !order.shippingAddress?.streetLine1,
+      isCodAvailable: false,
+      paymentId: null,
+      type: null,
+      completedAt: null,
+      paymentAuthorizedAt: null,
+      idempotencyKey: null,
+      salesChannelId: null,
+      qty: totalQty,
+      shippingCharges: order.shippingWithTax || order.shipping || 0,
+      paymentMethod: null,
+      shippingMethod: null,
+      subtotal: order.subTotalWithTax || order.subTotal || 0,
+      codCharges: 0,
+      tax: (order.totalWithTax || 0) - (order.total || 0),
+      total: order.totalWithTax || order.total || 0,
+      savingAmount: (order.subTotalWithTax + order.shippingWithTax) - order.totalWithTax,
+      userAuthToken: null,
+      currencyCode: order.currencyCode || "INR",
+      currencySymbol: "₹",
+      shippingRateId: order.shippingLines?.[0]?.shippingMethod?.id || null,
+      currencyDecimalDigits: 2,
+      storeId: null,
+      createdAt: order.createdAt || null,
+      updatedAt: order.updatedAt || null,
+      deletedAt: null,
+      lineItems: lines.map((l: any) => ({
+        id: l.id,
+        productId: l.productVariant?.product?.id || '',
+        variantId: l.productVariant?.id || '',
+        qty: l.quantity,
+        subtotal: l.linePriceWithTax || l.linePrice || 0,
+        discount: 0,
+        tax: 0,
+        shippingCharges: 0,
+        total: l.linePriceWithTax || l.linePrice || 0,
+        price: l.unitPriceWithTax || l.unitPrice || 0,
+        mrp: l.unitPriceWithTax || l.unitPrice || 0,
+        title: l.productVariant?.name || '',
+        slug: l.productVariant?.product?.slug || '',
+        sku: l.productVariant?.sku || '',
+        description: null,
+        thumbnail: l.productVariant?.featuredAsset?.preview || l.productVariant?.product?.featuredAsset?.preview || null,
+        metadata: null,
+        vendorId: null,
+        weight: null,
+        dimensionUnit: 'cm',
+        height: null,
+        width: null,
+        len: null,
+        shippingWeight: null,
+        shippingHeight: null,
+        shippingLen: null,
+        shippingWidth: null,
+        isSelectedForCheckout: true,
+        createdAt: null,
+        product: {
+          id: l.productVariant?.product?.id || '',
+          title: l.productVariant?.name || '',
+          thumbnail: l.productVariant?.featuredAsset?.preview || l.productVariant?.product?.featuredAsset?.preview || null,
+          slug: l.productVariant?.product?.slug || '',
+          sku: l.productVariant?.sku || '',
+          categories: []
+        },
+        variant: {
+          id: l.productVariant?.id || '',
+          price: l.unitPriceWithTax || l.unitPrice || 0,
+          mrp: l.unitPriceWithTax || l.unitPrice || 0,
+          weight: null,
+          height: null,
+          width: null,
+          len: null,
+          shippingWeight: null,
+          shippingHeight: null,
+          shippingLen: null,
+          shippingWidth: null,
+          sku: l.productVariant?.sku || '',
+          title: l.productVariant?.name || 'default',
+          options: []
+        }
+      })),
+      shippingAddress: mappedShippingAddress,
+      billingAddress: mappedBillingAddress
+    } as any
+  }
+
   /**
-   * Fetches the current user's cart data
+   * Fetches the current user's cart data (Vendure Active Order)
    *
    * @returns {Promise<Cart>} The cart data
    * @api {get} /api/cart Get current cart
-   *
-   * @example
-   * // Fetch current cart data
-   * const cart = await cartService.fetchCartData();
    */
   async fetchCartData() {
-    return this.get('/api/cart') as Promise<Cart>
+    const res = await this.query<any>('/shop-api', ACTIVE_ORDER_QUERY);
+    return this.mapVendureOrder(res?.activeOrder);
   }
 
   /**
@@ -46,29 +279,20 @@ export class CartService extends BaseService {
    *
    * @returns {Promise<Cart>} The refreshed cart data
    * @api {get} /api/carts/refresh/:cartId Refresh cart
-   *
-   * @example
-   * // Refresh the current cart
-   * const refreshedCart = await cartService.refereshCart();
    */
   async refereshCart() {
-    const cartId = localStorage.getItem('cart_id') || null
-    return this.get(`/api/carts/refresh/${cartId}`) as Promise<Cart>
+    return this.fetchCartData();
   }
 
   /**
-   * Fetches a cart by its ID
+   * Fetches a cart by its ID (Relies on session in Vendure)
    *
    * @param {string} cartId - The ID of the cart to fetch
    * @returns {Promise<Cart>} The requested cart
    * @api {get} /api/carts/:id Get cart by ID
-   *
-   * @example
-   * // Get a specific cart by ID
-   * const cart = await cartService.getCartByCartId('123');
    */
   async getCartByCartId(cartId: string) {
-    return this.get(`/api/carts/${cartId}`) as Promise<Cart>
+    return this.fetchCartData();
   }
 
   /**
@@ -82,15 +306,6 @@ export class CartService extends BaseService {
    * @param {string|null} params.lineId - Line item ID if updating an existing item
    * @returns {Promise<Cart>} The updated cart
    * @api {post} /api/carts/:cartId/line-items Add item to cart
-   *
-   * @example
-   * // Add a product to cart
-   * const updatedCart = await cartService.addToCart({
-   *   productId: '123',
-   *   variantId: '456',
-   *   qty: 1,
-   *   lineId: null
-   * });
    */
   async addToCart({
     productId,
@@ -105,45 +320,18 @@ export class CartService extends BaseService {
     cartId?: string | null
     lineId: string | null
   }) {
-    if (cartId === undefined || cartId === 'undefined') {
-      cartId = localStorage.getItem('cart_id') || null
-    }
-    const body = { productId, variantId, qty }
-
-    if (!cartId) {
-      const cartRes = (await this.post('/api/carts', {
-        cartId,
-        productId,
-        variantId,
-        qty
-      })) as Cart
-
-      // console.log(cartRes)
-      cartId = cartRes?.id
-    }
-    localStorage.setItem('cart_id', cartId)
-    let res: any = {}
-    if (body.qty === -9999999) {
-      res = await this.delete(`/api/carts/${cartId}/line-items/${lineId}`)
+    if (qty === -9999999 && lineId) {
+      await this.query('/shop-api', REMOVE_ORDER_LINE_MUTATION, { orderLineId: lineId });
+    } else if (lineId) {
+      await this.query('/shop-api', ADJUST_ORDER_LINE_MUTATION, { orderLineId: lineId, quantity: qty });
     } else {
-      if (lineId) {
-        res = (await this.post(
-          `/api/carts/${cartId}/line-items/${lineId}`,
-          body
-        )) as Cart
-      } else {
-        res = (await this.post(`/api/carts/${cartId}/line-items`, body)) as Cart
-      }
-      cartId = res?.cartId || res?.id
+      await this.query('/shop-api', ADD_ITEM_MUTATION, { productVariantId: variantId, quantity: qty });
     }
-    if (cartId) {
-      res = (await this.get(`/api/carts/${cartId}`)) as Cart
-      // await postKitcommerceApi(`carts/${cartId}`, { customer_id: res?.id })
-
-      localStorage.setItem('cart_id', cartId)
+    const order = await this.fetchCartData();
+    if (order?.id && typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('cart_id', order.id);
     }
-    return res
-    // return this.post<Cart>(`/api/carts`, { cartId, productId, variantId, qty })
+    return order;
   }
 
   async removeCart({
@@ -153,30 +341,10 @@ export class CartService extends BaseService {
     cartId: string
     lineId: string | null
   }) {
-    // console.log('🚀 ~ addToCartService= ~ productId variantId qty lineId:', lineId)
-    if (cartId === undefined || cartId === 'undefined') {
-      cartId = localStorage.getItem('cart_id') || null
-    }
-
-    let res: any = {}
-    if (!cartId) {
-      const cartRes = (await this.post('/api/carts', {
-        region_id: REGION_ID
-      })) as Cart
-      cartId = cartRes?.id
-    }
-    localStorage.setItem('cart_id', cartId)
-
     if (lineId) {
-      res = await this.delete(`/api/carts/${cartId}/line-items/${lineId}`)
+      await this.query('/shop-api', REMOVE_ORDER_LINE_MUTATION, { orderLineId: lineId });
     }
-    if (cartId) {
-      res = (await this.post(`/api/carts/${cartId}`, {
-        customer_id: res?.id
-      })) as Cart
-    }
-
-    return res || {}
+    return this.fetchCartData();
   }
 
   async applyCoupon({
@@ -186,14 +354,16 @@ export class CartService extends BaseService {
     cartId: string
     couponCode: string
   }) {
-    return this.post(`/api/cart/apply-coupon/${cartId}`, {
-      couponCode
-    }) as Promise<Cart>
+    await this.query('/shop-api', APPLY_COUPON_MUTATION, { couponCode });
+    return this.fetchCartData();
   }
 
   async removeCoupon() {
-    const cartId = localStorage.getItem('cart_id') || null
-    return this.post(`/api/cart/remove-coupon/${cartId}`, {}) as Promise<Cart>
+    const currentOrder = await this.fetchCartData();
+    if (currentOrder?.couponCode) {
+       await this.query('/shop-api', REMOVE_COUPON_MUTATION, { couponCode: currentOrder.couponCode });
+    }
+    return this.fetchCartData();
   }
 
   async updateCart2({
@@ -206,87 +376,73 @@ export class CartService extends BaseService {
     phone,
     isBillingAddressSameAsShipping
   }: any) {
-    if (!cartId || cartId === undefined || cartId === 'undefined') {
-      cartId = localStorage.getItem('cart_id') || null
-    }
-
-    const body: any = {
-      customer_id
-    }
     if (email) {
-      body.email = email
+      const customerInput = {
+        emailAddress: email,
+        firstName: shippingAddress?.firstName || billingAddress?.firstName || '',
+        lastName: shippingAddress?.lastName || billingAddress?.lastName || '',
+        phoneNumber: phone || shippingAddress?.phone || billingAddress?.phone || ''
+      };
+      await this.query('/shop-api', SET_CUSTOMER_FOR_ORDER_MUTATION, { input: customerInput });
     }
-    if (phone) {
-      body.phone = phone
-    }
-    let address_data
+
     if (shippingAddress) {
-      body.shipping_address = {
-        id: shippingAddress?.id,
-        firstName: shippingAddress?.firstName,
-        lastName: shippingAddress?.lastName,
-        address_1: shippingAddress?.address_1,
-        address_2: shippingAddress?.address_2,
-        city: shippingAddress?.city,
-        landmark: shippingAddress?.landmark,
-        zip: shippingAddress?.zip,
-        state: shippingAddress?.state,
-        countryCode: shippingAddress?.countryCode || 'IN',
-        phone: shippingAddress?.phone,
-        email: shippingAddress?.email
-      }
-      address_data = (await this.post(
-        '/api/address',
-        body.shipping_address
-      )) as Address
-      delete body.shipping_address
-      body.shippingAddressId = address_data?.id
+      const addressInput = {
+        fullName: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+        company: '',
+        streetLine1: shippingAddress.address_1 || '',
+        streetLine2: shippingAddress.address_2 || '',
+        city: shippingAddress.city || '',
+        province: shippingAddress.state || '',
+        postalCode: shippingAddress.zip || '',
+        countryCode: shippingAddress.countryCode || 'IN',
+        phoneNumber: shippingAddress.phone || phone || ''
+      };
+      await this.query('/shop-api', SET_SHIPPING_ADDRESS_MUTATION, { input: addressInput });
     }
+
     if (billingAddress && !isBillingAddressSameAsShipping) {
-      body.billing_address = {
-        id:
-          shippingAddress?.id === billingAddress?.id
-            ? 'new'
-            : shippingAddress
-            ? billingAddress?.id
-            : 'new',
-        firstName: billingAddress?.firstName,
-        lastName: billingAddress?.lastName,
-        address_1: billingAddress?.address_1,
-        address_2: billingAddress?.address_2,
-        city: billingAddress?.city,
-        landmark: billingAddress?.landmark,
-        zip: billingAddress?.zip,
-        state: billingAddress?.state,
-        countryCode: billingAddress?.countryCode || 'IN',
-        phone: billingAddress?.phone,
-        email: billingAddress?.email
-      }
-      address_data = (await this.post(
-        '/api/address',
-        body.billing_address
-      )) as Address
-      delete body.billing_address
-      // console.log('🚀 ~ CartService ~ updateCart2 ~ address_data:', address_data)
-      body.billingAddressId = address_data?.id
+      const addressInput = {
+        fullName: `${billingAddress.firstName || ''} ${billingAddress.lastName || ''}`.trim(),
+        company: '',
+        streetLine1: billingAddress.address_1 || '',
+        streetLine2: billingAddress.address_2 || '',
+        city: billingAddress.city || '',
+        province: billingAddress.state || '',
+        postalCode: billingAddress.zip || '',
+        countryCode: billingAddress.countryCode || 'IN',
+        phoneNumber: billingAddress.phone || phone || ''
+      };
+      await this.query('/shop-api', SET_BILLING_ADDRESS_MUTATION, { input: addressInput });
     } else if (shippingAddress && isBillingAddressSameAsShipping) {
-      body.billingAddressId = body.shippingAddressId
+      const addressInput = {
+        fullName: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+        company: '',
+        streetLine1: shippingAddress.address_1 || '',
+        streetLine2: shippingAddress.address_2 || '',
+        city: shippingAddress.city || '',
+        province: shippingAddress.state || '',
+        postalCode: shippingAddress.zip || '',
+        countryCode: shippingAddress.countryCode || 'IN',
+        phoneNumber: shippingAddress.phone || phone || ''
+      };
+      await this.query('/shop-api', SET_BILLING_ADDRESS_MUTATION, { input: addressInput });
     }
 
-    if (cartId) {
-      const res = (await this.patch(`/api/carts/${cartId}`, body)) as Cart
-
-      // Use type assertion to avoid TypeScript error
-      ;(res as any).shipping_address = address_data
-
-      return res || {}
-    }
+    return this.fetchCartData();
   }
 
   async completeCart(cart_id: string) {
-    return this.post(`/api/carts/${cart_id}/complete`, {
-      id: cart_id
-    }) as Promise<Cart>
+    const res = await this.query<any>('/shop-api', TRANSITION_ORDER_TO_STATE_MUTATION, { state: 'ArrangingPayment' });
+    const result = res?.transitionOrderToState;
+    if (result?.errorCode) {
+      if (result.errorCode === 'ORDER_STATE_TRANSITION_ERROR' && result.fromState === 'ArrangingPayment' && result.toState === 'ArrangingPayment') {
+        return this.fetchCartData();
+      }
+      const detailedError = result.transitionError || result.message;
+      throw new Error(`State Transition Failed: ${detailedError}`);
+    }
+    return this.fetchCartData();
   }
 
   async updateCart({
@@ -297,36 +453,7 @@ export class CartService extends BaseService {
     variantId,
     isSelectedForCheckout
   }: any) {
-    // console.log('🚀 ~ addToCartService= ~ productId variantId qty lineId:', qty, lineId, productId, variantId)
-    if (!cartId || cartId === undefined || cartId === 'undefined') {
-      cartId = localStorage.getItem('cart_id') || null
-    }
-
-    let res: any = {}
-    if (!cartId) {
-      const cartRes = (await this.post('/api/carts', {
-        region_id: REGION_ID
-      })) as Cart
-      cartId = cartRes?.id
-    }
-    localStorage.setItem('cart_id', cartId)
-
-    if (lineId) {
-      res = (await this.post(`/api/carts/${cartId}/line-items`, {
-        qty: qty,
-        id: lineId,
-        productId,
-        variantId,
-        isSelectedForCheckout
-      })) as Cart
-    }
-    // console.log(res)
-    // if (cartId) {
-    // 	await postKitcommerceApi(`carts/${cartId}`, { customer_id: res?.id })
-    // }
-
-    return res || {}
-    // return this.post<Cart>(`/api/carts/${cartId}/line-items`, { qty: qty, id: lineId, productId, variantId })
+    return this.addToCart({ productId, variantId, qty, cartId, lineId });
   }
 
   async updateShippingRate({
@@ -336,10 +463,10 @@ export class CartService extends BaseService {
     cartId: string
     shippingRateId: string
   }) {
-    const updates = { shippingRateId }
-    return this.patch(`/api/carts/${cartId}`, updates) as Promise<Cart>
+    await this.query('/shop-api', SET_ORDER_SHIPPING_METHOD_MUTATION, { shippingMethodId: [shippingRateId] });
+    return this.fetchCartData();
   }
 }
 
-// // Use singleton instance
+// Use singleton instance
 export const cartService = CartService.getInstance()

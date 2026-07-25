@@ -2,22 +2,47 @@ import type { Cart, Checkout } from './../types'
 
 import { BaseService } from './base.service'
 
+const TRANSITION_ORDER_TO_STATE_MUTATION = `
+  mutation TransitionOrderToState($state: String!) {
+    transitionOrderToState(state: $state) {
+      ... on Order { id state code totalWithTax }
+      ... on OrderStateTransitionError { errorCode message transitionError fromState toState }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const ADD_PAYMENT_TO_ORDER_MUTATION = `
+  mutation AddPaymentToOrder($input: PaymentInput!) {
+    addPaymentToOrder(input: $input) {
+      ... on Order { id state }
+      ... on ErrorResult { errorCode message }
+    }
+  }
+`;
+
+const ELIGIBLE_SHIPPING_METHODS_QUERY = `
+  query GetEligibleShippingMethods {
+    eligibleShippingMethods {
+      id
+      code
+      name
+      description
+      price
+      priceWithTax
+    }
+  }
+`;
+
 /**
  * CheckoutService provides functionality for managing checkout processes
- * in the Litekart platform.
- *
- * This service helps with:
- * - Processing payments through various payment gateways
- * - Managing checkout flows for different payment methods
- * - Handling shipping rates and order completion
+ * in the Litekart platform, now adapted for the Vendure Shop API.
  */
 export class CheckoutService extends BaseService {
   private static instance: CheckoutService
 
   /**
    * Get the singleton instance
-   *
-   * @returns {CheckoutService} The singleton instance of CheckoutService
    */
   static getInstance(): CheckoutService {
     if (!CheckoutService.instance) {
@@ -26,91 +51,42 @@ export class CheckoutService extends BaseService {
     return CheckoutService.instance
   }
 
-  /**
-   * Initiates Razorpay checkout process
-   *
-   * @param {Object} params - Parameters for Razorpay checkout
-   * @param {string} params.cartId - The cart ID for checkout
-   * @param {string} params.origin - The origin URL for callbacks
-   * @returns {Promise<Cart>} The cart with Razorpay payment information
-   * @api {post} /api/checkout/razorpay Razorpay checkout
-   *
-   * @example
-   * // Start Razorpay checkout
-   * const checkoutData = await checkoutService.checkoutRazorpay({
-   *   cartId: '123',
-   *   origin: 'https://example.com'
-   * });
-   */
-  async checkoutRazorpay({
-    cartId,
-    origin
-  }: {
-    cartId: string
-    origin: string
-  }) {
-    return this.post('/api/checkout/razorpay', {
-      cartId,
-      origin
-    }) as Promise<Cart>
+  private async prepareForPayment(): Promise<any> {
+    const res = await this.query<any>('/shop-api', TRANSITION_ORDER_TO_STATE_MUTATION, { state: 'ArrangingPayment' });
+    const result = res?.transitionOrderToState;
+    if (result?.errorCode) {
+      if (result.errorCode === 'ORDER_STATE_TRANSITION_ERROR' && result.fromState === 'ArrangingPayment' && result.toState === 'ArrangingPayment') {
+        const orderRes = await this.query<any>('/shop-api', '{ activeOrder { id state code totalWithTax } }');
+        return orderRes?.activeOrder;
+      }
+      const detailedError = result.transitionError || result.message;
+      throw new Error(`State Transition Failed: ${detailedError}`);
+    }
+    return result;
   }
 
-  /**
-   * Initiates Cash on Delivery checkout process
-   *
-   * @param {Object} params - Parameters for COD checkout
-   * @param {string} params.cartId - The cart ID for checkout
-   * @param {string} params.origin - The origin URL for callbacks
-   * @returns {Promise<Cart>} The cart with COD payment information
-   * @api {post} /api/checkout/cod COD checkout
-   *
-   * @example
-   * // Start COD checkout
-   * const checkoutData = await checkoutService.checkoutCOD({
-   *   cartId: '123',
-   *   origin: 'https://example.com'
-   * });
-   */
+  private async executePayment(method: string, metadata: any = {}): Promise<any> {
+    const res = await this.query<any>('/shop-api', ADD_PAYMENT_TO_ORDER_MUTATION, { input: { method, metadata } });
+    if (res?.addPaymentToOrder?.errorCode) {
+      throw new Error(res.addPaymentToOrder.message);
+    }
+    return res?.addPaymentToOrder;
+  }
+
+  async checkoutRazorpay({ cartId, origin }: { cartId: string; origin: string }) {
+    return this.prepareForPayment();
+  }
+
   async checkoutCOD({ cartId, origin }: { cartId: string; origin: string }) {
-    return this.post('/api/checkout/cod', { cartId, origin }) as Promise<Cart>
+    await this.prepareForPayment();
+    return this.executePayment('standard-payment', { origin });
   }
 
-  /**
-   * Initiates Point of Sale checkout process
-   *
-   * @param {Object} params - Parameters for POS checkout
-   * @param {string} params.cartId - The cart ID for checkout
-   * @param {string} params.origin - The origin URL for callbacks
-   * @returns {Promise<Cart>} The cart with POS payment information
-   * @api {post} /api/checkout/pos POS checkout
-   *
-   * @example
-   * // Start POS checkout
-   * const checkoutData = await checkoutService.checkoutPOS({
-   *   cartId: '123',
-   *   origin: 'https://example.com'
-   * });
-   */
   async checkoutPOS({ cartId, origin }: { cartId: string; origin: string }) {
-    return this.post('/api/checkout/pos', { cartId, origin }) as Promise<Cart>
+    await this.prepareForPayment();
+    return this.executePayment('pos', { origin });
   }
 
-  /**
-   * Captures a Razorpay payment after authorization
-   *
-   * @param {Object} params - Parameters for capturing Razorpay payment
-   * @param {string} params.razorpay_order_id - Razorpay order ID
-   * @param {string} params.razorpay_payment_id - Razorpay payment ID
-   * @returns {Promise<any>} The capture response
-   * @api {post} /api/checkout/razorpay-capture Capture Razorpay payment
-   *
-   * @example
-   * // Capture Razorpay payment
-   * const captureResponse = await checkoutService.captureRazorpayPayment({
-   *   razorpay_order_id: 'order_123',
-   *   razorpay_payment_id: 'pay_456'
-   * });
-   */
   async captureRazorpayPayment({
     razorpay_order_id,
     razorpay_payment_id
@@ -118,32 +94,9 @@ export class CheckoutService extends BaseService {
     razorpay_order_id: string
     razorpay_payment_id: string
   }) {
-    return this.post('/api/checkout/razorpay-capture', {
-      razorpay_order_id,
-      razorpay_payment_id
-    })
+    return this.executePayment('razorpay', { razorpay_order_id, razorpay_payment_id });
   }
 
-  /**
-   * Initiates PhonePe checkout process
-   *
-   * @param {Object} params - Parameters for PhonePe checkout
-   * @param {string} params.cartId - The cart ID for checkout
-   * @param {string} params.email - Customer email
-   * @param {string} params.phone - Customer phone number
-   * @param {string} params.origin - The origin URL for callbacks
-   * @returns {Promise<any>} The PhonePe checkout response
-   * @api {post} /api/checkout/phonepe PhonePe checkout
-   *
-   * @example
-   * // Start PhonePe checkout
-   * const checkoutData = await checkoutService.checkoutPhonepe({
-   *   cartId: '123',
-   *   email: 'customer@example.com',
-   *   phone: '9876543210',
-   *   origin: 'https://example.com'
-   * });
-   */
   async checkoutPhonepe({
     cartId,
     email,
@@ -155,25 +108,57 @@ export class CheckoutService extends BaseService {
     phone: string
     origin: string
   }) {
-    return this.post('/api/checkout/phonepe', { cartId, email, phone, origin })
+    return this.prepareForPayment();
   }
 
-  /**
-   * Retrieves shipping rates for a cart
-   *
-   * @param {Object} params - Parameters for getting shipping rates
-   * @param {string} params.cartId - The cart ID to get shipping rates for
-   * @returns {Promise<Checkout>} The shipping rates information
-   * @api {get} /api/shipping-rates/:cartId Get shipping rates
-   *
-   * @example
-   * // Get shipping rates for a cart
-   * const shippingRates = await checkoutService.getShippingRates({
-   *   cartId: '123'
-   * });
-   */
   async getShippingRates({ cartId }: { cartId: string }) {
-    return this.get(`/api/shipping-rates/${cartId}`) as Promise<Checkout>
+    const res = await this.query<any>('/shop-api', ELIGIBLE_SHIPPING_METHODS_QUERY);
+    const methods = res?.eligibleShippingMethods || [];
+    
+    return {
+      message: "Shipping rates fetched successfully",
+      success: true,
+      error: null,
+      data: methods.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description || "",
+        active: true,
+        zone_type: "domestic",
+        taxable: true,
+        priority: 0,
+        price_adjustment: 0,
+        currency_code: null,
+        min_order_value: null,
+        max_order_value: null,
+        restricted_categories: null,
+        store_id: null,
+        user_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deleted_at: null,
+        zone_id: null,
+        method_type: "price",
+        estimated_min_days: 0,
+        estimated_max_days: 5,
+        free_shipping_threshold: 0,
+        base_rate: m.priceWithTax || 0,
+        rate_per_weight: 0,
+        rate_per_price: 0,
+        max_weight: null,
+        max_length: null,
+        max_width: null,
+        max_height: null,
+        handling_fee: 0,
+        min_order_amount: 0,
+        max_order_amount: null,
+        min_weight: 0,
+        restricted_items: null,
+        provider_id: null,
+        provider_service_code: null,
+        rank: 0
+      }))
+    } as any;
   }
 
   async capturePhonepePayment({
@@ -183,11 +168,9 @@ export class CheckoutService extends BaseService {
     phonepe_order_id: string
     phonepe_payment_id: string
   }) {
-    return this.post('/api/checkout/phonepe-capture', {
-      phonepe_order_id,
-      phonepe_payment_id
-    })
+    return this.executePayment('phonepe', { phonepe_order_id, phonepe_payment_id });
   }
+
   async checkoutPaypal({
     cartId,
     origin,
@@ -197,15 +180,13 @@ export class CheckoutService extends BaseService {
     origin: string
     return_url: string
   }) {
-    return this.post('/api/checkout/paypal', {
-      cartId,
-      origin,
-      return_url
-    })
+    return this.prepareForPayment();
   }
+
   async checkoutStripe({ cartId, origin }: { cartId: string; origin: string }) {
-    return this.post('/api/checkout/stripe', { cartId, origin })
+    return this.prepareForPayment();
   }
+
   async checkoutStripeCapture({
     order_no,
     pg,
@@ -217,32 +198,9 @@ export class CheckoutService extends BaseService {
     payment_session_id: string
     storeId: string
   }) {
-    return this.post('/api/checkout/stripe-capture', {
-      order_no,
-      pg,
-      payment_session_id,
-      storeId
-    })
+    return this.executePayment('stripe', { payment_session_id });
   }
 
-  /**
-   * Initiates Cashfree checkout process
-   *
-   * @param {Object} params - Parameters for Cashfree checkout
-   * @param {string} params.cartId - The cart ID for checkout
-   * @param {string} params.email - Customer email address
-   * @param {string} params.origin - The frontend origin URL
-   * @returns {Promise<any>} The Cashfree session response containing payment_session_id, payment_link, etc.
-   * @api {post} /api/checkout/cashfree Cashfree checkout
-   *
-   * @example
-   * // Start Cashfree checkout
-   * const checkoutData = await checkoutService.checkoutCashfree({
-   *   cartId: 'cart_abc123',
-   *   email: 'customer@example.com',
-   *   origin: window.location.origin
-   * });
-   */
   async checkoutCashfree({
     cartId,
     email,
@@ -252,29 +210,11 @@ export class CheckoutService extends BaseService {
     email: string
     origin: string
   }) {
-    return this.post('/api/checkout/cashfree', {
-      cartId,
-      email,
-      origin
-    })
+    return this.prepareForPayment();
   }
 
-  /**
-   * Captures and verifies a Cashfree payment after redirection
-   *
-   * @param {Object} params - Parameters for capturing Cashfree payment
-   * @param {string} params.order_no - The order number received from the session creation/callback
-   * @returns {Promise<any>} The capture/verification response from the backend
-   * @api {post} /api/checkout/cashfree-capture Capture Cashfree payment
-   *
-   * @example
-   * // Capture Cashfree payment
-   * const captureResponse = await checkoutService.captureCashfreePayment({
-   *   order_no: 'parent_order_abc123'
-   * });
-   */
   async captureCashfreePayment({ order_no }: { order_no: string }) {
-    return this.post('/api/checkout/cashfree-capture', { order_no })
+    return this.executePayment('cashfree', { order_no });
   }
 
   async createAffirmPayOrder({
@@ -290,13 +230,7 @@ export class CheckoutService extends BaseService {
     storeId: string
     paymentMethodId: string
   }) {
-    return this.post('/api/affirm-checkout/create-order', {
-      cartId,
-      addressId,
-      origin,
-      storeId,
-      paymentMethodId
-    })
+    return this.prepareForPayment();
   }
 
   async cancelAffirmOrder({
@@ -308,11 +242,8 @@ export class CheckoutService extends BaseService {
     storeId: string
     origin: string
   }) {
-    return this.post('/api/checkout/affirm/cancel-order', {
-      orderId,
-      storeId,
-      origin
-    })
+    // Usually handled by custom logic, fallback to generic
+    return this.executePayment('affirm-cancel', { orderId });
   }
 
   async confirmAffirmOrder({
@@ -326,14 +257,9 @@ export class CheckoutService extends BaseService {
     storeId: string
     origin: string
   }) {
-    return this.post('/api/checkout/affirm/confirm-order', {
-      affirmToken,
-      orderId,
-      storeId,
-      origin
-    })
+    return this.executePayment('affirm', { affirmToken, orderId });
   }
 }
 
-// // Use singleton instance
+// Use singleton instance
 export const checkoutService = CheckoutService.getInstance()

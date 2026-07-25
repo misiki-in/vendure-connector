@@ -36,7 +36,38 @@ export class UserService extends BaseService {
    * const currentUser = await userService.getMe();
    */
   async getMe() {
-    return this.get<User>('/api/users/me')
+    const document = `
+      query GetActiveCustomer {
+        activeCustomer {
+          id
+          firstName
+          lastName
+          emailAddress
+          phoneNumber
+        }
+      }
+    `
+    const data = await this.query<{ activeCustomer: any }>('/shop-api', document)
+    const customer = data?.activeCustomer
+    if (!customer) return null as unknown as User
+    
+    const user = {
+      userId: customer.id,
+      phone: customer.phoneNumber || null,
+      email: customer.emailAddress,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      avatar: null,
+      role: 'USER',
+      storeId: null
+    }
+
+    if (typeof window !== 'undefined') {
+      window.document.cookie = `me=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=31536000`
+      window.document.cookie = `connect.sid=vendure-session-${customer.id}; path=/; max-age=31536000`
+    }
+
+    return user as unknown as User
   }
 
   /**
@@ -51,7 +82,7 @@ export class UserService extends BaseService {
    * const user = await userService.getUser('123');
    */
   async getUser(id: string) {
-    return this.get<User>(`/api/users/${id}`)
+    throw new Error('getUser by ID is not supported in Vendure Shop API')
   }
 
   /**
@@ -101,15 +132,34 @@ export class UserService extends BaseService {
     origin: string
   }) {
     try {
-      return this.post<User>('/api/auth/signup', {
-        firstName,
-        lastName,
-        phone,
-        email,
-        password,
-        cartId,
-        origin
+      const document = `
+        mutation RegisterCustomerAccount($input: RegisterCustomerInput!) {
+          registerCustomerAccount(input: $input) {
+            ... on Success {
+              success
+            }
+            ... on ErrorResult {
+              errorCode
+              message
+            }
+          }
+        }
+      `
+      const data = await this.query<any>('/shop-api', document, {
+        input: {
+          emailAddress: email,
+          firstName,
+          lastName,
+          password,
+          phoneNumber: phone
+        }
       })
+      
+      if (data?.registerCustomerAccount?.errorCode) {
+        throw new Error(data.registerCustomerAccount.message)
+      }
+      
+      return this.login({ email, password, cartId })
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Failed to signup'
       throw new Error(errorMessage)
@@ -142,7 +192,30 @@ export class UserService extends BaseService {
     password: string
     cartId?: string | null
   }) {
-    return this.post<User>('/api/auth/login', { email, password })
+    const document = `
+      mutation Login($username: String!, $password: String!) {
+        login(username: $username, password: $password) {
+          ... on CurrentUser {
+            id
+            identifier
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      username: email,
+      password
+    })
+    
+    if (data?.login?.errorCode) {
+      throw new Error(data.login.message)
+    }
+    
+    return this.getMe()
   }
 
   /**
@@ -168,10 +241,23 @@ export class UserService extends BaseService {
     email: string
     referrer: string
   }) {
-    return this.post<User>('/api/auth/forgot-password', {
-      email,
-      referrer
+    const document = `
+      mutation RequestPasswordReset($emailAddress: String!) {
+        requestPasswordReset(emailAddress: $emailAddress) {
+          ... on Success {
+            success
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      emailAddress: email
     })
+    return data?.requestPasswordReset as User
   }
 
   /**
@@ -185,7 +271,19 @@ export class UserService extends BaseService {
    * await userService.logout();
    */
   async logout() {
-    return this.delete('/api/auth/logout')
+    const document = `
+      mutation Logout {
+        logout {
+          success
+        }
+      }
+    `
+    const res = await this.query<any>('/shop-api', document)
+    if (typeof window !== 'undefined') {
+      window.document.cookie = 'me=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      window.document.cookie = 'connect.sid=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+    return res
   }
 
   /**
@@ -226,13 +324,26 @@ export class UserService extends BaseService {
     phone: string
     avatar?: string
   }) {
-    return this.put(`/api/admin/users/${id}`, {
-      firstName,
-      lastName,
-      email,
-      phone,
-      avatar
+    const document = `
+      mutation UpdateCustomer($input: UpdateCustomerInput!) {
+        updateCustomer(input: $input) {
+          id
+          firstName
+          lastName
+          emailAddress
+          phoneNumber
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      input: {
+        firstName,
+        lastName,
+        emailAddress: email,
+        phoneNumber: phone
+      }
     })
+    return data?.updateCustomer as User
   }
 
   async joinAsVendor({
@@ -256,20 +367,28 @@ export class UserService extends BaseService {
     cartId?: string | null
     origin: string
   }) {
-    return this.post<User>('/api/auth/join-as-vendor', {
-      firstName,
-      lastName,
-      businessName,
-      phone,
-      email,
-      password,
-      cartId,
-      origin
-    })
+    throw new Error('Not implemented for Vendure')
   }
 
   async changePassword(body: { old: string; password: string }) {
-    return this.post<User>('/api/auth/change-password', body)
+    const document = `
+      mutation UpdateCustomerPassword($currentPassword: String!, $newPassword: String!) {
+        updateCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+          ... on Success {
+            success
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
+      currentPassword: body.old,
+      newPassword: body.password
+    })
+    return data?.updateCustomerPassword as User
   }
 
   async resetPassword({
@@ -281,11 +400,25 @@ export class UserService extends BaseService {
     token: string
     password: string
   }) {
-    return this.post<User>('/api/auth/reset-password', {
-      userId,
+    const document = `
+      mutation ResetPassword($token: String!, $password: String!) {
+        resetPassword(token: $token, password: $password) {
+          ... on CurrentUser {
+            id
+            identifier
+          }
+          ... on ErrorResult {
+            errorCode
+            message
+          }
+        }
+      }
+    `
+    const data = await this.query<any>('/shop-api', document, {
       token,
       password
     })
+    return data?.resetPassword as User
   }
 
   async getOtp({
@@ -303,32 +436,19 @@ export class UserService extends BaseService {
     password: string
     passwordConfirmation: string
   }) {
-    return this.post<{ otp: string }>('/api/auth/get-otp', {
-      firstName,
-      lastName,
-      phone,
-      email,
-      password,
-      passwordConfirmation
-    })
+    throw new Error('Not implemented for Vendure')
   }
 
   async verifyOtp({ phone, otp }: { phone: string; otp: string }) {
-    return this.post<User>('/api/auth/verify-otp', { phone, otp })
+    throw new Error('Not implemented for Vendure')
   }
 
   async checkEmail(email: string) {
-    try {
-      const res = await this.post('/api/users/check-email', { email })
-      return res
-    } catch (e: unknown) {
-      const error = e as { message?: string }
-      throw new Error(error?.message || 'Failed to check email')
-    }
+    throw new Error('Not implemented for Vendure')
   }
 
   async deleteUser(id: string) {
-    return this.delete(`/api/delete/user/${id}`)
+    throw new Error('Not implemented for Vendure')
   }
 }
 
