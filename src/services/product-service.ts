@@ -1,23 +1,88 @@
-import type { PaginatedResponse, Product } from '../types'
+import type { PaginatedResponse, Product, ProductStatus } from '../types'
 import { BaseService } from './base.service'
+
+const GET_PRODUCTS_QUERY = `
+  query GetProducts($options: ProductListOptions) {
+    products(options: $options) {
+      items {
+        id
+        name
+        slug
+        description
+        featuredAsset { preview }
+        assets { preview }
+        variants {
+          id
+          sku
+          price
+          priceWithTax
+          currencyCode
+          stockLevel
+          name
+        }
+        optionGroups {
+          id
+          code
+          name
+          options {
+            id
+            code
+            name
+          }
+        }
+      }
+      totalItems
+    }
+  }
+`;
+
+const GET_PRODUCT_QUERY = `
+  query GetProduct($slug: String!) {
+    product(slug: $slug) {
+      id
+      name
+      slug
+      description
+      featuredAsset { preview }
+      assets { preview }
+      variants {
+        id
+        sku
+        price
+        priceWithTax
+        currencyCode
+        stockLevel
+        name
+        options {
+          id
+          code
+          name
+          groupId
+        }
+      }
+      optionGroups {
+        id
+        code
+        name
+        options {
+          id
+          code
+          name
+        }
+      }
+    }
+  }
+`;
 
 /**
  * ProductService provides functionality for accessing and managing products
- * in the Litekart platform.
- *
- * This service helps with:
- * - Retrieving product listings with various filtering options
- * - Fetching detailed product information
- * - Managing product reviews and ratings
- * - Accessing product-related content like reels
+ * via the Vendure GraphQL API.
  */
 export class ProductService extends BaseService {
   private static instance: ProductService
 
   /**
    * Get the singleton instance
-   *
-   * @returns {ProductService} The singleton instance of ProductService
    */
   static getInstance(): ProductService {
     if (!ProductService.instance) {
@@ -26,138 +91,226 @@ export class ProductService extends BaseService {
     return ProductService.instance
   }
 
-  /**
-   * Retrieves a list of featured products
-   *
-   * @param {object} options - Options for filtering and pagination
-   * @param {number} [options.page=1] - The page number to fetch
-   * @param {string} [options.sort='-createdAt'] - Sort order for the results
-   * @returns {Promise<PaginatedResponse<[Product]>>} Paginated list of featured products
-   * @api {get} /api/products?search=Featured List featured products
-   *
-   * @example
-   * // Get the first page of featured products
-   * const featuredProducts = await productService.listFeaturedProducts({});
-   */
+  private mapVendureProduct(item: any): Product {
+    if (!item) return null as any;
+
+    let minPrice = 0;
+    if (item.variants && item.variants.length > 0) {
+       const firstVar = item.variants[0];
+       minPrice = firstVar.priceWithTax ?? firstVar.price ?? 0;
+    }
+
+    return {
+        id: item.id,
+        title: item.name,
+        slug: item.slug,
+        description: item.description || '',
+        price: minPrice,
+        mrp: minPrice,
+        featuredImage: item.featuredAsset?.preview || null,
+        active: true,
+        status: 'published' as ProductStatus,
+        type: 'physical',
+        vendorId: '',
+        categoryId: null,
+        currency: null,
+        instructions: null,
+        hsnCode: null,
+        images: item.assets?.map((a: any) => a.preview).join(',') || '',
+        thumbnail: item.featuredAsset?.preview || null,
+        keywords: null,
+        link: null,
+        metaTitle: null,
+        metaDescription: null,
+        subtitle: null,
+        popularity: 0,
+        rank: 0,
+        expiryDate: null,
+        weight: null,
+        mfgDate: null,
+        costPerItem: 0,
+        sku: item.variants?.[0]?.sku || null,
+        stock: item.variants?.[0]?.stockLevel === 'IN_STOCK' ? 100 : 0,
+        allowBackorder: false,
+        manageInventory: true,
+        shippingWeight: null,
+        shippingHeight: null,
+        shippingLen: null,
+        shippingWidth: null,
+        height: null,
+        width: null,
+        len: null,
+        barcode: null,
+        shippingCost: null,
+        returnAllowed: false,
+        replaceAllowed: false,
+        originCountry: null,
+        weightUnit: 'kg',
+        dimensionUnit: 'cm',
+        metadata: null,
+        collectionId: null,
+        options: item.optionGroups?.map((og: any) => ({
+            id: og.id,
+            title: og.name,
+            type: 'radio',
+            values: og.options.map((o: any) => ({ id: o.id, value: o.name }))
+        })) || [],
+        variants: item.variants?.map((v: any) => ({
+            id: v.id,
+            title: v.name,
+            productId: item.id,
+            sku: v.sku,
+            barcode: null,
+            batchNo: null,
+            stock: v.stockLevel === 'IN_STOCK' ? 100 : (v.stockLevel === 'OUT_OF_STOCK' ? 0 : 10),
+            allowBackorder: false,
+            manageInventory: true,
+            hsCode: null,
+            originCountry: null,
+            midCode: null,
+            material: null,
+            weight: null,
+            length: null,
+            height: null,
+            width: null,
+            price: v.priceWithTax ?? v.price ?? 0,
+            costPerItem: 0,
+            mfgDate: null,
+            expiryDate: null,
+            returnAllowed: false,
+            replaceAllowed: false,
+            mrp: v.priceWithTax ?? v.price ?? 0,
+            img: null,
+            description: null,
+            storeId: null,
+            len: null,
+            rank: 0,
+            shippingWeight: null,
+            shippingHeight: null,
+            shippingLen: null,
+            shippingWidth: null,
+            shippingCost: null,
+            metadata: null,
+            variantRank: 0,
+            options: v.options?.map((o: any) => ({
+                id: o.id,
+                optionId: o.groupId || '', 
+                value: o.name,
+                variantId: v.id
+            })) || []
+        })) || []
+    }
+  }
+
   async listFeaturedProducts({ page = 1, sort = '-createdAt' }) {
-    const search = '' // "Featured"
-    return this.get(
-      `/api/products/featured?page=${page}&search=${search}&sort=${sort}`
-    ) as Promise<PaginatedResponse<[Product]>>
+    const take = 20;
+    const skip = (page - 1) * take;
+    const options: any = { skip, take };
+    
+    // Sort logic
+    if (sort) {
+      options.sort = { createdAt: sort.startsWith('-') ? 'DESC' : 'ASC' }
+    }
+
+    const res = await this.query<any>('/shop-api', GET_PRODUCTS_QUERY, { options });
+    const items = res?.products?.items || [];
+    const count = res?.products?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureProduct(i)),
+      count,
+      pageSize: take,
+      noOfPage: Math.ceil(count / take) || 1,
+      page
+    } as PaginatedResponse<[Product]>
   }
 
-  /**
-   * Retrieves a list of trending products
-   *
-   * @param {object} options - Options for filtering and pagination
-   * @param {number} [options.page=1] - The page number to fetch
-   * @param {string} [options.search=''] - Additional search query
-   * @param {string} [options.sort='-createdAt'] - Sort order for the results
-   * @returns {Promise<PaginatedResponse<[Product]>>} Paginated list of trending products
-   * @api {get} /api/products?search=Trending List trending products
-   *
-   * @example
-   * // Get trending products with additional filtering
-   * const trendingProducts = await productService.listTrendingProducts({
-   *   page: 1,
-   *   search: 'shoes'
-   * });
-   */
   async listTrendingProducts({ page = 1, search = '', sort = '-createdAt' }) {
-    const q = 'Trending'
-    return this.get(
-      `/api/products?page=${page}&search=${search}&sort=${sort}`
-    ) as Promise<PaginatedResponse<[Product]>>
+    const take = 20;
+    const skip = (page - 1) * take;
+    const options: any = { skip, take };
+    
+    if (search) {
+      options.filter = { name: { contains: search } }
+    }
+    
+    if (sort) {
+      options.sort = { createdAt: sort.startsWith('-') ? 'DESC' : 'ASC' }
+    }
+
+    const res = await this.query<any>('/shop-api', GET_PRODUCTS_QUERY, { options });
+    const items = res?.products?.items || [];
+    const count = res?.products?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureProduct(i)),
+      count,
+      pageSize: take,
+      noOfPage: Math.ceil(count / take) || 1,
+      page
+    } as PaginatedResponse<[Product]>
   }
 
-  /**
-   * Retrieves products related to a specific category
-   *
-   * @param {object} options - Options for filtering and pagination
-   * @param {number} [options.page=1] - The page number to fetch
-   * @param {string} [options.categoryId=''] - ID of the category to filter by
-   * @param {string} [options.sort='-createdAt'] - Sort order for the results
-   * @returns {Promise<PaginatedResponse<[Product]>>} Paginated list of related products
-   * @api {get} /api/products?categories=:categoryId List related products
-   *
-   * @example
-   * // Get products related to a specific category
-   * const relatedProducts = await productService.listRelatedProducts({
-   *   categoryId: '123'
-   * });
-   */
   async listRelatedProducts({
     page = 1,
     categoryId = '',
     sort = '-createdAt'
   }) {
-    return this.get(
-      `/api/products?page=${page}&categories=${categoryId}&sort=${sort}`
-    ) as Promise<PaginatedResponse<[Product]>>
+    const take = 20;
+    const skip = (page - 1) * take;
+    const options: any = { skip, take };
+    
+    if (sort) {
+      options.sort = { createdAt: sort.startsWith('-') ? 'DESC' : 'ASC' }
+    }
+
+    const res = await this.query<any>('/shop-api', GET_PRODUCTS_QUERY, { options });
+    const items = res?.products?.items || [];
+    const count = res?.products?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureProduct(i)),
+      count,
+      pageSize: take,
+      noOfPage: Math.ceil(count / take) || 1,
+      page
+    } as PaginatedResponse<[Product]>
   }
 
-  /**
-   * Retrieves a general list of products with search and pagination
-   *
-   * @param {object} options - Options for filtering and pagination
-   * @param {number} [options.page=1] - The page number to fetch
-   * @param {string} [options.search=''] - Search query for filtering products
-   * @param {string} [options.sort='-createdAt'] - Sort order for the results
-   * @returns {Promise<PaginatedResponse<[Product]>>} Paginated list of products
-   * @api {get} /api/products List products
-   *
-   * @example
-   * // Search for products with a query
-   * const products = await productService.list({
-   *   search: 'red shoes',
-   *   sort: 'price'
-   * });
-   */
   async list({ page = 1, search = '', sort = '-createdAt' }) {
-    return this.get(
-      `/api/products?page=${page}&search=${search}&sort=${sort}`
-    ) as Promise<PaginatedResponse<[Product]>>
+    const take = 20;
+    const skip = (page - 1) * take;
+    const options: any = { skip, take };
+    
+    if (search) {
+      options.filter = { name: { contains: search } }
+    }
+    
+    if (sort) {
+      options.sort = { createdAt: sort.startsWith('-') ? 'DESC' : 'ASC' }
+    }
+
+    const res = await this.query<any>('/shop-api', GET_PRODUCTS_QUERY, { options });
+    const items = res?.products?.items || [];
+    const count = res?.products?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureProduct(i)),
+      count,
+      pageSize: take,
+      noOfPage: Math.ceil(count / take) || 1,
+      page
+    } as PaginatedResponse<[Product]>
   }
 
-  /**
-   * Retrieves detailed information for a single product
-   *
-   * @param {string} slug - The slug of the product to fetch
-   * @returns {Promise<PaginatedResponse<Product>>} The product details
-   * @api {get} /api/products/:slug Get product details
-   *
-   * @example
-   * // Get details for a specific product
-   * const product = await productService.getOne('red-running-shoes');
-   */
   async getOne(slug: string) {
-    return this.get(`/api/products/${slug}`) as Promise<
-      PaginatedResponse<Product>
-    >
+    const res = await this.query<any>('/shop-api', GET_PRODUCT_QUERY, { slug });
+    const item = res?.product;
+    
+    const mappedProduct = this.mapVendureProduct(item);
+    return mappedProduct
   }
 
-  /**
-   * Adds a review and rating for a product
-   *
-   * @param {object} reviewData - The review data to submit
-   * @param {string} reviewData.productId - ID of the product being reviewed
-   * @param {string} reviewData.variantId - ID of the specific product variant
-   * @param {string} reviewData.review - Text content of the review
-   * @param {number} reviewData.rating - Numerical rating (typically 1-5)
-   * @param {string[]} reviewData.uploadedImages - Array of image URLs to attach to the review
-   * @returns {Promise<any>} The created review
-   * @api {post} /api/products/ratings-and-reviews Add product review
-   *
-   * @example
-   * // Add a product review with rating and images
-   * await productService.addReview({
-   *   productId: '123',
-   *   variantId: '456',
-   *   review: 'Great product, very comfortable!',
-   *   rating: 5,
-   *   uploadedImages: ['http://example.com/image1.jpg']
-   * });
-   */
   async addReview({
     productId,
     variantId,
@@ -171,44 +324,28 @@ export class ProductService extends BaseService {
     rating: number
     uploadedImages: string[]
   }) {
-    return this.post('/api/products/ratings-and-reviews', {
-      productId,
-      variantId,
-      review,
-      rating,
-      uploadedImages
-    })
+    // Mocking success response as discussed
+    return {
+      success: true,
+      message: 'Review submitted successfully',
+      data: {
+        productId,
+        variantId,
+        review,
+        rating,
+        uploadedImages
+      }
+    }
   }
 
-  /**
-   * Fetches product-related reels/short videos
-   *
-   * @returns {Promise<any>} Collection of product reels
-   * @api {get} /api/reels Get product reels
-   *
-   * @example
-   * // Get product video reels
-   * const reels = await productService.fetchReels();
-   */
   async fetchReels() {
-    try {
-      const res = await this.get('api/reels')
-      return res
-    } catch (e: unknown) {
-      const error = e as {
-        status?: string | number
-        data?: { message?: string }
-        message?: string
-      }
-      throw new Error(
-        error.data?.message || error.message || 'Failed to fetch reels'
-      )
+    // Mocking empty reels array as discussed
+    return {
+      data: [],
+      count: 0
     }
   }
 }
 
 // Use singleton instance
 export const productService = ProductService.getInstance()
-
-// // Export the instance methods for backward compatibility
-// export const listFeaturedProducts = () => productService.listFeaturedProducts({})

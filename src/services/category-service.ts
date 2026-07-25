@@ -1,134 +1,185 @@
 import type { Category, PaginatedResponse } from './../types'
-
 import { BaseService } from './base.service'
+
+const GET_CATEGORIES_QUERY = `
+  query GetCategories($options: CollectionListOptions) {
+    collections(options: $options) {
+      items {
+        id
+        name
+        slug
+        description
+        featuredAsset { preview }
+        parent { id }
+      }
+      totalItems
+    }
+  }
+`;
+
+const GET_CATEGORY_QUERY = `
+  query GetCategory($slug: String!) {
+    collection(slug: $slug) {
+      id
+      name
+      slug
+      description
+      featuredAsset { preview }
+      parent { id }
+    }
+  }
+`;
 
 /**
  * CategoryService provides functionality for working with specific resources
- * in the Litekart API.
- *
- * This service helps with:
- * - Main functionality point 1
- * - Main functionality point 2
- * - Main functionality point 3
+ * via the Vendure API.
  */
 export class CategoryService extends BaseService {
   private static instance: CategoryService
 
   /**
    * Get the singleton instance
+   * 
+   * @returns {CategoryService} The singleton instance of CategoryService
    */
-  /**
- * Get the singleton instance
- * 
- * @returns {CategoryService} The singleton instance of CategoryService
- */
   static getInstance(): CategoryService {
     if (!CategoryService.instance) {
       CategoryService.instance = new CategoryService()
     }
     return CategoryService.instance
   }
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.fetchFooterCategories('123');
- */
-  async fetchFooterCategories({ page = 1, q = '', sort = '-createdAt' }) {
-    return this.get(
-      `/api/categories?page=${page}&q=${q}&sort=${sort}`
-    ) as Promise<PaginatedResponse<Category>>
-  }
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.fetchFeaturedCategories('123');
- */
-  async fetchFeaturedCategories({ limit = 100 }) {
-    return this.get(`/api/categories/featured?limit=${limit}`) as Promise<
-      PaginatedResponse<Category>
-    >
+
+  private mapVendureCategory(item: any): Category {
+    if (!item) return null as any;
+
+    return {
+      id: item.id,
+      isActive: true,
+      isInternal: false,
+      isMegamenu: false, // Mock
+      thumbnail: item.featuredAsset?.preview || null,
+      path: null,
+      level: 0,
+      description: item.description || null,
+      isFeatured: false,
+      keywords: null,
+      rank: 0,
+      link: null,
+      metaDescription: null,
+      metaKeywords: null,
+      metaTitle: null,
+      name: item.name,
+      parentCategoryId: item.parent?.id || null,
+      store: null,
+      slug: item.slug,
+      userId: '',
+      activeProducts: 0, // Mock
+      inactiveProducts: 0, // Mock
+      createdAt: new Date().toISOString(), // Mock
+      updatedAt: new Date().toISOString() // Mock
+    }
   }
 
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.fetchCategory('123');
- */
+  async fetchFooterCategories({ page = 1, q = '', sort = '-createdAt' }) {
+    const take = 20;
+    const skip = (page - 1) * take;
+    const options: any = { skip, take };
+    
+    if (q) {
+      options.filter = { name: { contains: q } }
+    }
+    
+    if (sort) {
+      options.sort = { id: sort.startsWith('-') ? 'DESC' : 'ASC' }
+    }
+
+    const res = await this.query<any>('/shop-api', GET_CATEGORIES_QUERY, { options });
+    const items = res?.collections?.items || [];
+    const count = res?.collections?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureCategory(i)),
+      count,
+      pageSize: take,
+      noOfPage: Math.ceil(count / take) || 1,
+      page
+    } as PaginatedResponse<Category>
+  }
+
+  async fetchFeaturedCategories({ limit = 100 }) {
+    const options: any = { skip: 0, take: limit };
+    
+    const res = await this.query<any>('/shop-api', GET_CATEGORIES_QUERY, { options });
+    const items = res?.collections?.items || [];
+    const count = res?.collections?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureCategory(i)),
+      count,
+      pageSize: limit,
+      noOfPage: 1,
+      page: 1
+    } as PaginatedResponse<Category>
+  }
 
   async fetchCategory(id: string) {
-    return this.get(`/api/product-categories?handle=${id}`) as Promise<Category>
-  }
+    // Treating 'id' as 'slug' since litekart passes a handle
+    const res = await this.query<any>('/shop-api', GET_CATEGORY_QUERY, { slug: id });
+    const item = res?.collection;
+    
+    if (!item) {
+       // Return empty mock if not found to prevent crashes, as requested
+       return this.mapVendureCategory({ id, name: 'Unknown Category', slug: id });
+    }
 
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.fetchAllCategories('123');
- */
+    return this.mapVendureCategory(item)
+  }
 
   async fetchAllCategories() {
-    return this.get('/api/categories') as Promise<PaginatedResponse<Category>>
+    const options: any = { skip: 0, take: 100 };
+    
+    const res = await this.query<any>('/shop-api', GET_CATEGORIES_QUERY, { options });
+    const items = res?.collections?.items || [];
+    const count = res?.collections?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureCategory(i)),
+      count,
+      pageSize: 100,
+      noOfPage: Math.ceil(count / 100) || 1,
+      page: 1
+    } as PaginatedResponse<Category>
   }
-
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.fetchAllProductsOfCategories('123');
- */
 
   async fetchAllProductsOfCategories(id: string) {
-    return this.get(`/api/product-categories?handle=${id}`) as Promise<
-      PaginatedResponse<Category>
-    >
+    // The original method returns PaginatedResponse<Category>. 
+    // Returning an empty mock as requested.
+    return {
+      data: [],
+      count: 0,
+      pageSize: 20,
+      noOfPage: 0,
+      page: 1
+    } as PaginatedResponse<Category>
   }
 
-  /**
- * Fetches a single Category by ID
- * 
- * @param {string} id - The ID of the category to fetch
- * @returns {Promise<any>} The requested category
- * @api {get} /api/category/:id Get category by ID
- * 
- * @example
- * // Example usage
- * const category = await categoryService.getMegamenu('123');
- */
-
   async getMegamenu() {
-    return this.get('/api/categories/megamenu') as Promise<
-      PaginatedResponse<Category>
-    >
+    // Fetch all categories to act as the megamenu.
+    const options: any = { skip: 0, take: 50 };
+    
+    const res = await this.query<any>('/shop-api', GET_CATEGORIES_QUERY, { options });
+    const items = res?.collections?.items || [];
+    const count = res?.collections?.totalItems || 0;
+    
+    return {
+      data: items.map((i: any) => this.mapVendureCategory(i)),
+      count,
+      pageSize: 50,
+      noOfPage: 1,
+      page: 1
+    } as PaginatedResponse<Category>
   }
 }
 
-// // Use singleton instance
+// Use singleton instance
 export const categoryService = CategoryService.getInstance()
