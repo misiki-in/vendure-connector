@@ -12,7 +12,7 @@ export class BaseService {
   private static _authToken?: string
   private static _channelToken?: string
   private static _languageCode?: string
-  private static _baseUrl?: string = "http://localhost:3000"
+  private static _baseUrl?: string
 
   /**
    * Creates a new BaseService instance
