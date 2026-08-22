@@ -33,19 +33,23 @@
   },
   "keywords": [
     "vendure",
-    "litekart",
     "connector",
     "ecommerce",
     "headless",
+    "headless-commerce",
+    "headless-storefront",
+    "api",
     "graphql",
     "storefront",
-    "api",
-    "integration",
     "typescript",
-    "svelte"
+    "svelte",
+    "sveltekit",
+    "litekart",
+    "misiki",
+    "svelte-commerce"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/node": "^22.13.1",
