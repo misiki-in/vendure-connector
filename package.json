@@ -31,7 +31,16 @@
     "p": "tsup && npm publish --access public",
     "dev": "tsup --watch"
   },
-  "keywords": [],
+  "keywords": [
+    "vendure",
+    "litekart",
+    "connector",
+    "ecommerce",
+    "headless",
+    "graphql",
+    "storefront",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
