@@ -59,7 +59,6 @@ To get the necessary API configurations and properly configure your Vendure back
    - Set this URL as the value for `PUBLIC_VENDURE_API_URL` in your `.env` file.
 3. **Configure Required Settings**:
    - **Email Verification**: In your Vendure config, set `authOptions.requireVerification` to `false` (signup registers the customer with a password and logs in immediately, which fails if email verification is required).
-   - **Litekart Configuration**: Set both `isPhoneMandatory` and `isEmailMandatory` to `false`.
 
 ### 5. Build and Run the Project
 
