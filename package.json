@@ -1,6 +1,6 @@
 {
   "name": "@misiki/vendure-connector",
-  "version": "2.0.32",
+  "version": "2.0.33",
   "description": "API Connector for Litekart",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -39,7 +39,10 @@
     "headless",
     "graphql",
     "storefront",
-    "api"
+    "api",
+    "integration",
+    "typescript",
+    "svelte"
   ],
   "author": "",
   "license": "ISC",
