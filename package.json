@@ -1,6 +1,6 @@
 {
   "name": "@misiki/vendure-connector",
-  "version": "2.0.30",
+  "version": "2.0.31",
   "description": "API Connector for Litekart",
   "type": "module",
   "main": "./dist/index.cjs",

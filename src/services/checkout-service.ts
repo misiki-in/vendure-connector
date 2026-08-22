@@ -1,5 +1,6 @@
 import type { Cart, Checkout } from './../types'
 
+import { fromMinorUnits } from '../utils/money'
 import { BaseService } from './base.service'
 
 const TRANSITION_ORDER_TO_STATE_MUTATION = `
@@ -23,6 +24,7 @@ const ADD_PAYMENT_TO_ORDER_MUTATION = `
 
 const ELIGIBLE_SHIPPING_METHODS_QUERY = `
   query GetEligibleShippingMethods {
+    activeOrder { currencyCode }
     eligibleShippingMethods {
       id
       code
@@ -114,7 +116,8 @@ export class CheckoutService extends BaseService {
   async getShippingRates({ cartId }: { cartId: string }) {
     const res = await this.query<any>('/shop-api', ELIGIBLE_SHIPPING_METHODS_QUERY);
     const methods = res?.eligibleShippingMethods || [];
-    
+    const currencyCode = res?.activeOrder?.currencyCode ?? null;
+
     return {
       message: "Shipping rates fetched successfully",
       success: true,
@@ -142,7 +145,7 @@ export class CheckoutService extends BaseService {
         estimated_min_days: 0,
         estimated_max_days: 5,
         free_shipping_threshold: 0,
-        base_rate: m.priceWithTax || 0,
+        base_rate: fromMinorUnits(m.priceWithTax ?? m.price, currencyCode),
         rate_per_weight: 0,
         rate_per_price: 0,
         max_weight: null,

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.31] - 2026-08-22
+
+### Fixed
+- Monetary values from the Vendure Shop API are now converted from minor units
+  to major units before leaving the connector. Prices previously surfaced raw —
+  a $1,558.80 product was mapped as `155880` and rendered as `$155880.00`.
+  Affects `productService`, `searchService`, `cartService` (line items, totals,
+  tax, discount) and `checkoutService.getShippingRates`.
+- Cart `discountAmount`/`savingAmount` returned `NaN` when an order had no
+  shipping or subtotal set; the totals are now summed defensively.
+- Cart `currencyDecimalDigits` was hard-coded to `2`; it is now derived from the
+  order's currency, so zero-decimal (JPY, KRW) and three-decimal (KWD, BHD)
+  currencies scale correctly.
+
+### Note
+- Consumers that divided connector prices by 100 themselves must drop that
+  workaround.
+
+---
+
 ## [2.0.26] - 2025-XX-XX
 
 ### Added
