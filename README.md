@@ -1,14 +1,15 @@
 # @misiki/vendure-connector
 
-### Configuration required
+Vendure API connector for Litekart.
 
-1. In Litekart configuration, `isPhoneMandatory` and 
-`isEmailMandatory` to be both false.
-2. In Vendure, authOptions `requireVerification`
+### Required configuration
 
-### Usages
+1. In the Litekart configuration, set both `isPhoneMandatory` and `isEmailMandatory` to `false`.
+2. In Vendure, set `authOptions.requireVerification` to `false` (signup registers the customer with a password and logs in immediately, which fails if email verification is required).
 
-1. Install package
+### Usage
+
+1. Install the package
 
 ```
 npm install @misiki/vendure-connector
