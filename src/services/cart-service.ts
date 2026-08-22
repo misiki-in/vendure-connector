@@ -1,6 +1,7 @@
 import type { Address, Cart, CartLineItem } from './../types'
 const REGION_ID = ''
 
+import { currencyFractionDigits, fromMinorUnits } from '../utils/money'
 import { BaseService } from './base.service'
 
 const ACTIVE_ORDER_QUERY = `
@@ -165,7 +166,17 @@ export class CartService extends BaseService {
 
     const mappedShippingAddress = mapAddress(order.shippingAddress);
     const mappedBillingAddress = mapAddress(order.billingAddress);
-    
+
+    // Order totals stay in Vendure's minor units while they are added up, so
+    // the derived discount and tax figures are exact before being scaled down.
+    const currencyCode = order.currencyCode || 'INR';
+    const minor = (value: any) => (typeof value === 'number' ? value : 0);
+    const subTotalMinor = minor(order.subTotalWithTax) || minor(order.subTotal);
+    const shippingMinor = minor(order.shippingWithTax) || minor(order.shipping);
+    const totalMinor = minor(order.totalWithTax) || minor(order.total);
+    const discountMinor = subTotalMinor + shippingMinor - totalMinor;
+    const taxMinor = minor(order.totalWithTax) - minor(order.total);
+
     return {
       id: order.id || '',
       email: order.customer?.emailAddress || null,
@@ -175,7 +186,7 @@ export class CartService extends BaseService {
       regionId: REGION_ID || null,
       userId: order.customer?.id || null,
       couponCode: order.couponCodes?.[0] || null,
-      discountAmount: (order.subTotalWithTax + order.shippingWithTax) - order.totalWithTax,
+      discountAmount: fromMinorUnits(discountMinor, currencyCode),
       couponAppliedDate: null,
       needAddress: !order.shippingAddress?.streetLine1,
       isCodAvailable: false,
@@ -186,19 +197,19 @@ export class CartService extends BaseService {
       idempotencyKey: null,
       salesChannelId: null,
       qty: totalQty,
-      shippingCharges: order.shippingWithTax || order.shipping || 0,
+      shippingCharges: fromMinorUnits(shippingMinor, currencyCode),
       paymentMethod: null,
       shippingMethod: null,
-      subtotal: order.subTotalWithTax || order.subTotal || 0,
+      subtotal: fromMinorUnits(subTotalMinor, currencyCode),
       codCharges: 0,
-      tax: (order.totalWithTax || 0) - (order.total || 0),
-      total: order.totalWithTax || order.total || 0,
-      savingAmount: (order.subTotalWithTax + order.shippingWithTax) - order.totalWithTax,
+      tax: fromMinorUnits(taxMinor, currencyCode),
+      total: fromMinorUnits(totalMinor, currencyCode),
+      savingAmount: fromMinorUnits(discountMinor, currencyCode),
       userAuthToken: null,
-      currencyCode: order.currencyCode || "INR",
+      currencyCode,
       currencySymbol: "₹",
       shippingRateId: order.shippingLines?.[0]?.shippingMethod?.id || null,
-      currencyDecimalDigits: 2,
+      currencyDecimalDigits: currencyFractionDigits(currencyCode),
       storeId: null,
       createdAt: order.createdAt || null,
       updatedAt: order.updatedAt || null,
@@ -208,13 +219,13 @@ export class CartService extends BaseService {
         productId: l.productVariant?.product?.id || '',
         variantId: l.productVariant?.id || '',
         qty: l.quantity,
-        subtotal: l.linePriceWithTax || l.linePrice || 0,
+        subtotal: fromMinorUnits(l.linePriceWithTax || l.linePrice, currencyCode),
         discount: 0,
         tax: 0,
         shippingCharges: 0,
-        total: l.linePriceWithTax || l.linePrice || 0,
-        price: l.unitPriceWithTax || l.unitPrice || 0,
-        mrp: l.unitPriceWithTax || l.unitPrice || 0,
+        total: fromMinorUnits(l.linePriceWithTax || l.linePrice, currencyCode),
+        price: fromMinorUnits(l.unitPriceWithTax || l.unitPrice, currencyCode),
+        mrp: fromMinorUnits(l.unitPriceWithTax || l.unitPrice, currencyCode),
         title: l.productVariant?.name || '',
         slug: l.productVariant?.product?.slug || '',
         sku: l.productVariant?.sku || '',
@@ -243,8 +254,8 @@ export class CartService extends BaseService {
         },
         variant: {
           id: l.productVariant?.id || '',
-          price: l.unitPriceWithTax || l.unitPrice || 0,
-          mrp: l.unitPriceWithTax || l.unitPrice || 0,
+          price: fromMinorUnits(l.unitPriceWithTax || l.unitPrice, currencyCode),
+          mrp: fromMinorUnits(l.unitPriceWithTax || l.unitPrice, currencyCode),
           weight: null,
           height: null,
           width: null,

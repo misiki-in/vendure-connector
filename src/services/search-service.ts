@@ -1,4 +1,5 @@
 import { ProductSearchResult } from '../types/product-search-types'
+import { fromMinorUnits } from '../utils/money'
 import { BaseService } from './base.service'
 import type { Product, ProductStatus } from '../types/product-types'
 
@@ -18,6 +19,7 @@ const SEARCH_QUERY = `
           ... on PriceRange { min max }
           ... on SinglePrice { value }
         }
+        currencyCode
         productAsset {
           id
           preview
@@ -73,12 +75,13 @@ export class SearchService extends BaseService {
     const take = 20;
 
     const data: Product[] = items.map((item: any) => {
-      // Extract price
+      // Extract price. A search result carries either a SinglePrice or, when
+      // variants differ, a PriceRange — take the low end for the "from" price.
       let price = 0;
       if (item.priceWithTax) {
-        price = item.priceWithTax.value ?? item.priceWithTax.min ?? 0;
+        price = fromMinorUnits(item.priceWithTax.value ?? item.priceWithTax.min, item.currencyCode);
       } else if (item.price) {
-        price = item.price.value ?? item.price.min ?? 0;
+        price = fromMinorUnits(item.price.value ?? item.price.min, item.currencyCode);
       }
 
       return {

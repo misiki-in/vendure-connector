@@ -1,4 +1,5 @@
 import type { PaginatedResponse, Product, ProductStatus } from '../types'
+import { fromMinorUnits } from '../utils/money'
 import { BaseService } from './base.service'
 
 const GET_PRODUCTS_QUERY = `
@@ -94,10 +95,12 @@ export class ProductService extends BaseService {
   private mapVendureProduct(item: any): Product {
     if (!item) return null as any;
 
+    const currencyCode = item.variants?.[0]?.currencyCode ?? null;
+
     let minPrice = 0;
     if (item.variants && item.variants.length > 0) {
        const firstVar = item.variants[0];
-       minPrice = firstVar.priceWithTax ?? firstVar.price ?? 0;
+       minPrice = fromMinorUnits(firstVar.priceWithTax ?? firstVar.price, currencyCode);
     }
 
     return {
@@ -173,13 +176,13 @@ export class ProductService extends BaseService {
             length: null,
             height: null,
             width: null,
-            price: v.priceWithTax ?? v.price ?? 0,
+            price: fromMinorUnits(v.priceWithTax ?? v.price, v.currencyCode ?? currencyCode),
             costPerItem: 0,
             mfgDate: null,
             expiryDate: null,
             returnAllowed: false,
             replaceAllowed: false,
-            mrp: v.priceWithTax ?? v.price ?? 0,
+            mrp: fromMinorUnits(v.priceWithTax ?? v.price, v.currencyCode ?? currencyCode),
             img: null,
             description: null,
             storeId: null,
