@@ -69,5 +69,5 @@ export const resolveRestLocally = async (method: string, url: string) => {
   return emptyResult()
 }
 
-export const isRestPath = (url: unknown): url is string =>
+export const isRestPath = (url: unknown): boolean =>
   typeof url === 'string' && REST_PATH.test(url)
