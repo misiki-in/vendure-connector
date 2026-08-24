@@ -126,7 +126,7 @@ export class MeilisearchService extends BaseService {
   async searchAutoComplete(params: {
     query: string
   }): Promise<MeilisearchResponse> {
-    // `/api/ms-autocomplete/*` is the Litekart API's Meilisearch proxy; Vendure has none.
+    // `/api/ms-autocomplete/*` is the storefront REST API's Meilisearch proxy; Vendure has none.
     return { data: [] } as any
   }
 }

@@ -2,8 +2,7 @@ import type { Blog, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * BlogService provides functionality for working with specific resources
- * in the Litekart API.
+ * BlogService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1
@@ -44,7 +43,7 @@ export class BlogService extends BaseService {
  */
 
   async list({ page = 1, q = '', sort = '-createdAt' }) {
-    // Blogs are Litekart CMS content with no Vendure equivalent.
+    // Blogs are CMS content with no Vendure equivalent.
     return { data: [], count: 0, pageSize: 0, noOfPage: 0, page: 1 } as any
   }
 
@@ -61,7 +60,7 @@ export class BlogService extends BaseService {
  */
 
   async getOne(id: string) {
-    // Blogs are Litekart CMS content with no Vendure equivalent.
+    // Blogs are CMS content with no Vendure equivalent.
     return {} as any
   }
 }

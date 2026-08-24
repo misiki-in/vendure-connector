@@ -117,8 +117,7 @@ const emptyOrders = (page = 1): PaginatedResponse<Order> =>
   ({ data: [], count: 0, pageSize: PAGE_SIZE, noOfPage: 0, page }) as unknown as PaginatedResponse<Order>
 
 /**
- * OrderService provides functionality for working with specific resources
- * in the Litekart API.
+ * OrderService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1
@@ -271,7 +270,7 @@ export class OrderService extends BaseService {
     return this.getOrder(orderId)
   }
 
-  // Checkout runs through CheckoutService on Vendure; these Litekart-era entry points have no
+  // Checkout runs through CheckoutService on Vendure; these legacy REST entry points have no
   // equivalent here and must not fall back to an API a Vendure store does not run.
   async codCheckout(_params: any): Promise<Order> {
     throw new Error('Use checkoutService.checkoutCOD() on Vendure.')

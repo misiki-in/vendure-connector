@@ -1,6 +1,6 @@
 # TypeScript Types Reference
 
-Quick reference for all TypeScript types in LiteKart Connector.
+Quick reference for all TypeScript types in Vendure Connector.
 
 ---
 

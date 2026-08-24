@@ -1,6 +1,6 @@
 # Examples
 
-Comprehensive code examples for common e-commerce scenarios using LiteKart Connector.
+Comprehensive code examples for common e-commerce scenarios using Vendure Connector.
 
 ---
 
@@ -28,7 +28,7 @@ Comprehensive code examples for common e-commerce scenarios using LiteKart Conne
 ### Featured Products with Pagination
 
 ```typescript
-import { productService } from '@misiki/litekart-connector'
+import { productService } from '@misiki/vendure-connector'
 import Link from 'next/link'
 
 export default async function FeaturedProductsPage({
@@ -94,7 +94,7 @@ export default async function FeaturedProductsPage({
 ### Category-Based Products
 
 ```typescript
-import { categoryService, productService } from '@misiki/litekart-connector'
+import { categoryService, productService } from '@misiki/vendure-connector'
 
 export default async function CategoryPage({ params }) {
   // Get category details
@@ -156,7 +156,7 @@ export default async function CategoryPage({ params }) {
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { searchService } from '@misiki/litekart-connector'
+import { searchService } from '@misiki/vendure-connector'
 
 export default function FilteredProductsPage() {
   const searchParams = useSearchParams()
@@ -304,7 +304,7 @@ export default function FilteredProductsPage() {
 ### Complete Product Page with Variants
 
 ```typescript
-import { productService, wishlistService, reviewService } from '@misiki/litekart-connector'
+import { productService, wishlistService, reviewService } from '@misiki/vendure-connector'
 import { useState, useEffect } from 'react'
 
 export default function ProductPage({ params }) {
@@ -544,7 +544,7 @@ export default function ProductPage({ params }) {
 ### Complete Cart Page
 
 ```typescript
-import { cartService, couponService } from '@misiki/litekart-connector'
+import { cartService, couponService } from '@misiki/vendure-connector'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
@@ -803,7 +803,7 @@ export default function CartPage() {
 'use client'
 
 import { useState, useEffect } from 'react'
-import { cartService } from '@misiki/litekart-connector'
+import { cartService } from '@misiki/vendure-connector'
 
 export default function MiniCart() {
   const [cart, setCart] = useState(null)
@@ -875,7 +875,7 @@ export default function MiniCart() {
 
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { authService } from '@misiki/litekart-connector'
+import { authService } from '@misiki/vendure-connector'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -975,7 +975,7 @@ export default function LoginPage() {
 
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { authService } from '@misiki/litekart-connector'
+import { authService } from '@misiki/vendure-connector'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -1203,7 +1203,7 @@ export default function SignupPage() {
 'use client'
 
 import { useState } from 'react'
-import { authService } from '@misiki/litekart-connector'
+import { authService } from '@misiki/vendure-connector'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -1285,7 +1285,7 @@ import {
   addressService,
   checkoutService,
   paymentMethodService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
@@ -1748,7 +1748,7 @@ export default function CheckoutPage() {
 
 ```typescript
 // account/orders/page.tsx
-import { orderService } from '@misiki/litekart-connector'
+import { orderService } from '@misiki/vendure-connector'
 import Link from 'next/link'
 
 export default async function OrdersPage({
@@ -1927,7 +1927,7 @@ export default async function OrdersPage({
 import {
   orderService,
   reviewService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 export default async function OrderDetailPage({ params }) {
   const order = await orderService.getOrder(params.orderNo)
@@ -2068,7 +2068,7 @@ export default async function OrderDetailPage({ params }) {
 
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { orderService } from '@misiki/litekart-connector'
+import { orderService } from '@misiki/vendure-connector'
 
 export default function ReviewPage({ params }) {
   const router = useRouter()
@@ -2176,7 +2176,7 @@ export default function ReviewPage({ params }) {
 ### Vendor Registration
 
 ```typescript
-import { authService, vendorService } from '@misiki/litekart-connector'
+import { authService, vendorService } from '@misiki/vendure-connector'
 
 export async function registerVendor(formData) {
   try {
@@ -2227,7 +2227,7 @@ import {
   orderService,
   productService,
   userService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 export default async function AdminDashboard() {
   // Fetch all data in parallel
@@ -2311,7 +2311,7 @@ export default async function AdminDashboard() {
 import {
   customDesignService,
   customProductService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 export default function CustomDesignPage() {
   const [design, setDesign] = useState(null)
@@ -2428,7 +2428,7 @@ import {
   productService,
   cartService,
   wishlistService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 // Configure React Query
 const queryClient = new QueryClient()

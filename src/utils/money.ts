@@ -1,6 +1,6 @@
 /**
  * Vendure returns every monetary value as an integer in the currency's minor
- * units — 155880 for $1,558.80. The Litekart storefront expects major units,
+ * units — 155880 for $1,558.80. The storefront expects major units,
  * so amounts read off the Shop API are scaled down as they leave a mapper.
  *
  * Amounts derived from several Vendure values (discounts, tax) are computed in

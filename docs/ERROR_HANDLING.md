@@ -1,6 +1,6 @@
 # Error Handling Guide
 
-Comprehensive guide to handling errors in LiteKart Connector.
+Comprehensive guide to handling errors in Vendure Connector.
 
 ---
 
@@ -9,7 +9,7 @@ Comprehensive guide to handling errors in LiteKart Connector.
 All service methods throw errors with a consistent structure:
 
 ```typescript
-class LiteKartError extends Error {
+class ConnectorError extends Error {
   message: string      // User-friendly error message
   status?: number     // HTTP status code
   data?: unknown      // Additional error data from API
@@ -767,7 +767,7 @@ function LoginForm() {
 ## Testing Error Handling
 
 ```typescript
-import { productService } from '@misiki/litekart-connector'
+import { productService } from '@misiki/vendure-connector'
 
 // Mock fetch for testing
 const mockFetch = jest.fn()

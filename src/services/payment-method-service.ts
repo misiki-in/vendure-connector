@@ -16,8 +16,8 @@ const ELIGIBLE_PAYMENT_METHODS_QUERY = `
 `;
 
 /**
- * PaymentMethodService provides functionality for working with payment methods
- * in the Litekart API, now adapted for Vendure API.
+ * PaymentMethodService provides functionality for working with payment methods,
+ * adapted for the Vendure API.
  */
 export class PaymentMethodService extends BaseService {
   private static instance: PaymentMethodService
@@ -55,7 +55,7 @@ export class PaymentMethodService extends BaseService {
       apiKey: null,
       isTest: false,
       code: rawCode,
-      // No icon URL is invented here: `/static/payment/*` is served by the Litekart API, which a
+      // No icon URL is invented here: `/static/payment/*` is served by the storefront REST API, which a
       // Vendure storefront does not run, and only the storefront knows which marks it ships.
       // Consumers map `code` to their own asset.
       img: null
@@ -75,7 +75,7 @@ export class PaymentMethodService extends BaseService {
     const res = await this.query<any>('/shop-api', ELIGIBLE_PAYMENT_METHODS_QUERY);
     const quotes = res?.eligiblePaymentMethods || [];
 
-    // Filter to only include eligible methods and map to Litekart type
+    // Filter to only include eligible methods and map to the connector's payment-method type
     const mappedMethods = quotes
       .filter((q: any) => q.isEligible)
       .map((q: any) => this.mapVendurePaymentMethod(q));

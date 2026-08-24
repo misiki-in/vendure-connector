@@ -37,8 +37,8 @@ const ELIGIBLE_SHIPPING_METHODS_QUERY = `
 `;
 
 /**
- * CheckoutService provides functionality for managing checkout processes
- * in the Litekart platform, now adapted for the Vendure Shop API.
+ * CheckoutService provides functionality for managing checkout processes,
+ * adapted for the Vendure Shop API.
  */
 // Read before payment: once payment settles the order is no longer the active one, and its code is
 // the only handle the confirmation page has. The customer check is the precondition Vendure enforces

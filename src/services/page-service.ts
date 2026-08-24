@@ -3,8 +3,7 @@ import type { Page, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * PageService provides functionality for working with specific resources
- * in the Litekart API.
+ * PageService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1
@@ -43,7 +42,7 @@ export class PageService extends BaseService {
  * const result = await pageService.list({ page: 1 });
  */
   async list({ page = 1, search = '', sort = '-createdAt' }) {
-    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // Pages are CMS content; Vendure has no equivalent, and the routes that use these
     // already render their empty states.
     return [] as any
   }
@@ -64,7 +63,7 @@ export class PageService extends BaseService {
  */
 
   async listLatestPages({}) {
-    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // Pages are CMS content; Vendure has no equivalent, and the routes that use these
     // already render their empty states.
     return { data: [], count: 0, pageSize: 0, noOfPage: 0, page: 1 } as any
   }
@@ -82,7 +81,7 @@ export class PageService extends BaseService {
  */
 
   async getOne(id: string) {
-    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // Pages are CMS content; Vendure has no equivalent, and the routes that use these
     // already render their empty states.
     return {} as any
   }

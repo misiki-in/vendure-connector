@@ -3,8 +3,7 @@ import type { Feedback, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * FeedbackService provides functionality for working with specific resources
- * in the Litekart API.
+ * FeedbackService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

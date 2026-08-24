@@ -1,11 +1,11 @@
-# @misiki/litekart-connector
+# @misiki/vendure-connector
 
 **Comprehensive API Client for LiteKart E-commerce Platform**
 
 [![npm version](https://litekart.in/logo-litekart.png)](https://litekart.in)
-[![NPM License](https://img.shields.io/npm/l/@misiki/litekart-connector.svg)](https://www.npmjs.com/package/@misiki/litekart-connector)
-[![NPM Version](https://img.shields.io/npm/v/@misiki/litekart-connector.svg)](https://www.npmjs.com/package/@misiki/litekart-connector)
-[![NPM Downloads](https://img.shields.io/npm/dm/@misiki/litekart-connector.svg)](https://www.npmjs.com/package/@misiki/litekart-connector)
+[![NPM License](https://img.shields.io/npm/l/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
+[![NPM Version](https://img.shields.io/npm/v/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
+[![NPM Downloads](https://img.shields.io/npm/dm/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
 
 > A production-ready, fully-typed TypeScript/JavaScript SDK for building e-commerce applications with LiteKart backend.
 
@@ -47,7 +47,7 @@
 
 ## Overview
 
-**LiteKart Connector** is a comprehensive, type-safe API client library designed to simplify integration with the LiteKart e-commerce backend. It provides a complete set of services covering all aspects of e-commerce operations including product catalog, shopping cart, orders, payments, user management, and more.
+**Vendure Connector** is a comprehensive, type-safe API client library designed to simplify integration with the LiteKart e-commerce backend. It provides a complete set of services covering all aspects of e-commerce operations including product catalog, shopping cart, orders, payments, user management, and more.
 
 ### What is LiteKart?
 
@@ -107,25 +107,25 @@ This SDK provides:
 ### Using npm
 
 ```bash
-npm install @misiki/litekart-connector
+npm install @misiki/vendure-connector
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @misiki/litekart-connector
+yarn add @misiki/vendure-connector
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @misiki/litekart-connector
+pnpm add @misiki/vendure-connector
 ```
 
 ### Using bun
 
 ```bash
-bun add @misiki/litekart-connector
+bun add @misiki/vendure-connector
 ```
 
 ---
@@ -135,13 +135,13 @@ bun add @misiki/litekart-connector
 ### Basic Usage
 
 ```typescript
-import { services } from '@misiki/litekart-connector'
+import { services } from '@misiki/vendure-connector'
 
 // Access individual services
 const { productService, cartService, authService } = services
 
 // Or import specific services
-import { productService, cartService } from '@misiki/litekart-connector'
+import { productService, cartService } from '@misiki/vendure-connector'
 
 // Fetch featured products
 const featuredProducts = await productService.listFeaturedProducts({ page: 1 })
@@ -166,7 +166,7 @@ import {
   checkoutService,
   orderService,
   addressService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 async function shoppingFlow() {
   try {
@@ -228,7 +228,7 @@ async function shoppingFlow() {
 All services accept an optional `fetch` implementation, useful for custom HTTP clients or testing:
 
 ```typescript
-import { ProductService } from '@misiki/litekart-connector'
+import { ProductService } from '@misiki/vendure-connector'
 
 // Use a custom fetch (e.g., with axios or node-fetch)
 import fetch from 'node-fetch'
@@ -239,11 +239,11 @@ const products = await productService.list({ page: 1 })
 
 ### Setting Base URL
 
-Currently, the services assume your LiteKart backend is running on the same origin. For cross-origin setups, configure your fetch wrapper:
+Currently, the services assume your Vendure backend is running on the same origin. For cross-origin setups, configure your fetch wrapper:
 
 ```typescript
 const customFetch = (url: string, options?: RequestInit) => {
-  const baseURL = 'https://api.litekart.com'
+  const baseURL = 'https://api.example.com'
   const fullURL = url.startsWith('http') ? url : `${baseURL}${url}`
   return fetch(fullURL, {
     ...options,
@@ -266,7 +266,7 @@ const productService = new ProductService(customFetch)
 All services follow the singleton pattern to ensure a single instance per application:
 
 ```typescript
-import { productService } from '@misiki/litekart-connector'
+import { productService } from '@misiki/vendure-connector'
 
 // Get instance directly
 const instance1 = productService
@@ -2549,11 +2549,11 @@ Always use the exported singleton instances:
 
 ```typescript
 // ✅ Good
-import { productService } from '@misiki/litekart-connector'
+import { productService } from '@misiki/vendure-connector'
 const products = await productService.list({})
 
 // ❌ Avoid
-import { ProductService } from '@misiki/litekart-connector'
+import { ProductService } from '@misiki/vendure-connector'
 const service = new ProductService()  // Creates new instance
 ```
 
@@ -2590,7 +2590,7 @@ if (typeof localStorage !== 'undefined') {
 Leverage TypeScript types for better DX:
 
 ```typescript
-import type { Product, PaginatedResponse } from '@misiki/litekart-connector'
+import type { Product, PaginatedResponse } from '@misiki/vendure-connector'
 
 async function handleProducts(): Promise<PaginatedResponse<Product>> {
   return await productService.list({ page: 1 })
@@ -2673,7 +2673,7 @@ import {
   productService,
   searchService,
   categoryService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 async function ProductCatalogPage({ categorySlug }: { categorySlug?: string }) {
   // Get category info
@@ -2734,7 +2734,7 @@ import {
   productService,
   couponService,
   checkoutService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 async function CartPage() {
   // Get cart
@@ -2818,7 +2818,7 @@ import {
   authService,
   addressService,
   cartService
-} from '@misiki/litekart-connector'
+} from '@misiki/vendure-connector'
 
 async function RegistrationForm() {
   const [formData, setFormData] = useState({
@@ -2873,7 +2873,7 @@ async function RegistrationForm() {
 ### Order History
 
 ```typescript
-import { orderService } from '@misiki/litekart-connector'
+import { orderService } from '@misiki/vendure-connector'
 
 async function OrderHistory() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -2911,7 +2911,7 @@ async function OrderHistory() {
 ### Review Submission
 
 ```typescript
-import { orderService, productService } from '@misiki/litekart-connector'
+import { orderService, productService } from '@misiki/vendure-connector'
 
 async function ReviewForm({ orderId, productId }: { orderId: string; productId: string }) {
   const [rating, setRating] = useState(0)
@@ -2959,7 +2959,7 @@ Use a custom fetch for SSR or custom headers:
 import fetch from 'isomorphic-unfetch'
 
 const customFetch = (url: string, options?: RequestInit) => {
-  const baseUrl = process.env.NEXT_PUBLIC_LITEKART_URL
+  const baseUrl = process.env.NEXT_PUBLIC_VENDURE_URL
 
   return fetch(`${baseUrl}${url}`, {
     ...options,
@@ -3060,11 +3060,11 @@ const loggedProductService = new (createLoggedService(ProductService))()
 
 ```typescript
 // v1.x
-import { ProductService } from '@misiki/litekart-connector'
+import { ProductService } from '@misiki/vendure-connector'
 const products = await new ProductService().list()
 
 // v2.x
-import { productService } from '@misiki/litekart-connector'
+import { productService } from '@misiki/vendure-connector'
 const result = await productService.list({})
 // result.data contains products
 // result.count for pagination
@@ -3086,8 +3086,8 @@ Contributions are welcome! Please follow these guidelines:
 ### Development Setup
 
 ```bash
-git clone https://github.com/misiki/litekart-connector.git
-cd litekart-connector
+git clone https://github.com/misiki-in/vendure-connector.git
+cd vendure-connector
 npm install
 npm run dev  # Watch mode with tsup
 npm run build
@@ -3113,7 +3113,7 @@ ISC
 ## Support
 
 - **Documentation**: https://litekart.in/docs/connector
-- **Issues**: https://github.com/misiki/litekart-connector/issues
+- **Issues**: https://github.com/misiki-in/vendure-connector/issues
 - **Email**: support@litekart.in
 - **Discord**: [Join our Discord](https://discord.gg/litekart)
 

@@ -1,8 +1,8 @@
 # Documentation Summary
 
-## LiteKart Connector - Complete Documentation Set
+## Vendure Connector - Complete Documentation Set
 
-This document provides a quick overview of all available documentation for `@misiki/litekart-connector`.
+This document provides a quick overview of all available documentation for `@misiki/vendure-connector`.
 
 ---
 
@@ -290,12 +290,12 @@ Standardized JSDoc templates for:
 
 ### Installation
 ```bash
-npm install @misiki/litekart-connector
+npm install @misiki/vendure-connector
 ```
 
 ### Import Pattern
 ```typescript
-import { productService, cartService, authService } from '@misiki/litekart-connector'
+import { productService, cartService, authService } from '@misiki/vendure-connector'
 ```
 
 ### Basic Usage
@@ -310,7 +310,7 @@ const user = await authService.login({ email, password })
 ## 📞 Support
 
 - **Documentation:** https://litekart.in/docs/connector
-- **GitHub Issues:** https://github.com/misiki/litekart-connector/issues
+- **GitHub Issues:** https://github.com/misiki-in/vendure-connector/issues
 - **Discord:** https://discord.gg/litekart
 - **Email:** support@litekart.in
 
@@ -336,4 +336,4 @@ For a complete understanding of the SDK, we recommend reading in this order:
 
 ---
 
-**Happy building with LiteKart Connector! 🚀**
+**Happy building with Vendure Connector! 🚀**

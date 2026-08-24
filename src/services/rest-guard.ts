@@ -1,10 +1,10 @@
 /**
- * Litekart REST paths, intercepted.
+ * Storefront REST paths, intercepted.
  *
- * This connector inherits methods that address Litekart's REST API by path — `/api/orders`,
+ * This connector inherits methods that address the storefront's REST API by path — `/api/orders`,
  * `/api/reviews`, `/api/vendors`, dozens more. Those paths are relative, so in dev a Vite proxy
- * forwards them to a Litekart API and in production they hit the storefront's own origin. Behind
- * Vendure there is no Litekart API, so the request can only fail.
+ * forwards them to that REST API and in production they hit the storefront's own origin. Behind
+ * Vendure there is no such API, so the request can only fail.
  *
  * Reads for a collection resolve empty (a store legitimately has none); reads for one record and
  * every write throw, because a blank detail page reads as broken and a silent success would tell a
@@ -47,7 +47,7 @@ const report = (method: string, url: string) => {
 }
 
 /**
- * Answers a Litekart REST path from data the storefront holds (menus, countries, currencies, plugin
+ * Answers a REST path from data the storefront holds (menus, countries, currencies, plugin
  * toggles…). Return `undefined` to fall through to the behaviour above.
  */
 export type RestResolver = (url: string) => Promise<unknown> | unknown | undefined

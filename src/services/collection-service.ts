@@ -78,8 +78,8 @@ export class CollectionService extends BaseService {
       thumbnail: item.featuredAsset?.preview || null,
       metaTitle: null,
       metaDescription: null,
-      // The storefront renders a collection's products as `collectionvalues[].products` — the shape
-      // Litekart returns, where each value points at one product. Vendure holds the membership on
+      // The storefront renders a collection's products as `collectionvalues[].products`, where each
+      // value points at one product. Vendure holds the membership on
       // variants, so they are folded back to one entry per product (a product with three variants in
       // the collection must not appear three times).
       collectionvalues: this.mapCollectionProducts(item?.productVariants?.items),

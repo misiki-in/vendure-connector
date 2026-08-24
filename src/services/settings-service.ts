@@ -3,8 +3,7 @@ import type { Setting } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * SettingService provides functionality for working with specific resources
- * in the Litekart API.
+ * SettingService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

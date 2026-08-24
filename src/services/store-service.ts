@@ -45,8 +45,7 @@ export interface GetStoreParams {
 }
 
 /**
- * StoreService provides functionality for retrieving store information
- * in the Litekart platform.
+ * StoreService provides functionality for retrieving store information.
  *
  * This service helps with:
  * - Retrieving store details by ID or domain

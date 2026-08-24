@@ -3,8 +3,7 @@ import type { PaginatedResponse, Product, Vendor } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * VendorService provides functionality for working with specific resources
- * in the Litekart API.
+ * VendorService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

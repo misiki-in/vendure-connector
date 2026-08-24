@@ -3,8 +3,7 @@ import type { Reels, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * ReelsService provides functionality for working with specific resources
- * in the Litekart API.
+ * ReelsService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

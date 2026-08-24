@@ -2,8 +2,7 @@ import type { AutoComplete, PaginatedResponse } from '../types'
 import { BaseService } from './base.service'
 
 /**
- * AutocompleteService provides functionality for working with specific resources
- * in the Litekart API.
+ * AutocompleteService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

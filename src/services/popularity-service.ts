@@ -1,8 +1,7 @@
 import { BaseService } from './base.service'
 
 /**
- * PopularityService provides functionality for tracking product popularity
- * in the Litekart platform.
+ * PopularityService provides functionality for tracking product popularity.
  *
  * This service helps with:
  * - Tracking product view counts and engagement

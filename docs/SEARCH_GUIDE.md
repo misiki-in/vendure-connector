@@ -29,7 +29,7 @@ LiteKart uses **Meilisearch** for instant, typo-tolerant product search. The con
 Converts URL parameters, formats results, handles errors gracefully.
 
 ```typescript
-import { searchService } from '@misiki/litekart-connector'
+import { searchService } from '@misiki/vendure-connector'
 
 const results = await searchService.searchWithQuery('red shoes')
 ```
@@ -38,7 +38,7 @@ const results = await searchService.searchWithQuery('red shoes')
 Direct Meilisearch access for advanced use cases.
 
 ```typescript
-import { meilisearchService } from '@misiki/litekart-connector'
+import { meilisearchService } from '@misiki/vendure-connector'
 
 const results = await meilisearchService.search({
   query: 'shoes',
@@ -571,7 +571,7 @@ const productDocs = products.map(product => ({
 ### Basic Autocomplete
 
 ```typescript
-import { meilisearchService } from '@misiki/litekart-connector'
+import { meilisearchService } from '@misiki/vendure-connector'
 
 async function getSuggestions(query) {
   if (!query || query.length < 2) {
@@ -695,7 +695,7 @@ async function smartSearch(query) {
 
 ```typescript
 // Track popular searches
-import { popularityService } from '@misiki/litekart-connector'
+import { popularityService } from '@misiki/vendure-connector'
 
 async function trackSearch(query, resultCount, userId) {
   await popularityService.trackSearch({

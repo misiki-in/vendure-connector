@@ -3,8 +3,7 @@ import type { Region } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * RegionService provides functionality for working with specific resources
- * in the Litekart API.
+ * RegionService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

@@ -4,7 +4,7 @@ import type { StoreDetails } from './store-service'
  * Store identity for a Vendure storefront.
  *
  * Vendure has no notion of the record this storefront calls a "store" — name, logo, favicon,
- * currency, menus, plugin toggles, theme variables. On Litekart that comes from
+ * currency, menus, plugin toggles, theme variables. On a REST backend that comes from
  * `/api/stores/public-details`; behind Vendure there is no such API, so the storefront supplies it
  * from its own config and registers it here once at boot.
  *

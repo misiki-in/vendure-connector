@@ -2,8 +2,7 @@ import type { User, verifyEmail } from '../types'
 import { BaseService } from './base.service'
 
 /**
- * AuthService provides functionality for user authentication and profile management
- * in the Litekart platform.
+ * AuthService provides functionality for user authentication and profile management.
  *
  * This service helps with:
  * - User registration and login processes

@@ -3,8 +3,7 @@ import type { Home } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * HomeService provides functionality for working with specific resources
- * in the Litekart API.
+ * HomeService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1
