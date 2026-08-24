@@ -48,7 +48,6 @@ export class PaymentMethodService extends BaseService {
       }
     }
 
-    const ext = rawCode === 'cashfree' ? 'svg' : 'png';
 
     return {
       name: name,
@@ -56,7 +55,10 @@ export class PaymentMethodService extends BaseService {
       apiKey: null,
       isTest: false,
       code: rawCode,
-      img: `/static/payment/${rawCode}.${ext}`
+      // No icon URL is invented here: `/static/payment/*` is served by the Litekart API, which a
+      // Vendure storefront does not run, and only the storefront knows which marks it ships.
+      // Consumers map `code` to their own asset.
+      img: null
     }
   }
 

@@ -126,12 +126,8 @@ export class MeilisearchService extends BaseService {
   async searchAutoComplete(params: {
     query: string
   }): Promise<MeilisearchResponse> {
-    const { query } = params
-    const searchParams = new URLSearchParams()
-    searchParams.append('search', query)
-    return this.get<MeilisearchResponse>(
-      `/api/ms-autocomplete/products?${searchParams?.toString()}`
-    )
+    // `/api/ms-autocomplete/*` is the Litekart API's Meilisearch proxy; Vendure has none.
+    return { data: [] } as any
   }
 }
 
