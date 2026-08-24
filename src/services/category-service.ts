@@ -38,6 +38,19 @@ export class CategoryService extends BaseService {
   private static instance: CategoryService
 
   /**
+   * `use-category-filters` in @misiki/kitcommerce-core fetches the category tree by raw Litekart REST
+   * path rather than a typed method — `categoryService.get('/api/categories/all')`. On a Vendure
+   * store that URL resolves against the storefront's own origin and fails, so route that one path to
+   * the collections query; `fetchAllCategories` already returns the `{ data }` shape it reads.
+   */
+  async get<T>(url: string): Promise<T> {
+    if (typeof url === 'string' && url.startsWith('/api/categories/all')) {
+      return (await this.fetchAllCategories()) as unknown as T
+    }
+    return super.get<T>(url)
+  }
+
+  /**
    * Get the singleton instance
    * 
    * @returns {CategoryService} The singleton instance of CategoryService
