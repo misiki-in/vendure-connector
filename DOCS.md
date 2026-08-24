@@ -1,13 +1,13 @@
 # @misiki/vendure-connector
 
-**Comprehensive API Client for LiteKart E-commerce Platform**
+**Comprehensive API Client for the Vendure E-commerce Platform**
 
-[![npm version](https://litekart.in/logo-litekart.png)](https://litekart.in)
+[![npm version](https://img.shields.io/npm/v/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
 [![NPM License](https://img.shields.io/npm/l/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
 [![NPM Version](https://img.shields.io/npm/v/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
 [![NPM Downloads](https://img.shields.io/npm/dm/@misiki/vendure-connector.svg)](https://www.npmjs.com/package/@misiki/vendure-connector)
 
-> A production-ready, fully-typed TypeScript/JavaScript SDK for building e-commerce applications with LiteKart backend.
+> A production-ready, fully-typed TypeScript/JavaScript SDK for building e-commerce applications on a Vendure backend.
 
 ---
 
@@ -47,18 +47,23 @@
 
 ## Overview
 
-**Vendure Connector** is a comprehensive, type-safe API client library designed to simplify integration with the LiteKart e-commerce backend. It provides a complete set of services covering all aspects of e-commerce operations including product catalog, shopping cart, orders, payments, user management, and more.
+**Vendure Connector** is a comprehensive, type-safe API client library designed to simplify integration with the Vendure e-commerce backend. It provides a complete set of services covering all aspects of e-commerce operations including product catalog, shopping cart, orders, payments, user management, and more.
 
-### What is LiteKart?
+### What is Vendure?
 
-LiteKart is a modern headless e-commerce platform built with Node.js, featuring:
-- **Multi-store support** - Manage multiple stores from a single installation
-- **Flexible product catalog** with variants, options, and custom designs
-- **Advanced search** powered by Meilisearch
-- **Multiple payment gateways** (Razorpay, Stripe, PhonePe, PayPal, Cashfree, COD)
-- **Comprehensive order management**
-- **Vendor management** for marketplace operations
-- **Blog, banners, and content management**
+Vendure is a modern headless e-commerce framework built with Node.js, TypeScript and GraphQL, featuring:
+- **Multi-channel support** - serve several storefronts from a single installation
+- **Flexible product catalog** with variants, options, facets and collections
+- **Product search** over the Shop API, with pluggable search providers
+- **Pluggable payment and shipping** integrations
+- **Comprehensive order management** built on a configurable order state machine
+- **Customer accounts, addresses and authentication**
+- **A plugin architecture** for extending both the API and the admin UI
+
+> **Note:** several services in this connector exist for interface compatibility with
+> storefront features Vendure has no equivalent for (blogs, pages, banners, wishlists,
+> vendors). Those methods resolve empty or throw rather than calling an API that a
+> Vendure store does not run.
 
 ### What Does This Connector Provide?
 
@@ -3121,9 +3126,9 @@ ISC
 
 ## Related Projects
 
-- **[LiteKart Core](https://github.com/litekart/litekart)** - The headless e-commerce backend
-- **[LiteKart Admin](https://github.com/litekart/litekart-admin)** - Admin dashboard
-- **[LiteKart Storefront](https://github.com/litekart/litekart-storefront)** - React storefront template
+- **[Vendure](https://github.com/vendure-ecommerce/vendure)** - The headless e-commerce backend this connector targets
+- **[svelte-commerce](https://github.com/misiki-in/svelte-commerce)** - The SvelteKit storefront this connector powers
+- **[@misiki/litekart-connector](https://github.com/misiki-in/litekart-connector)** - Sibling connector for a Litekart backend
 
 ---
 

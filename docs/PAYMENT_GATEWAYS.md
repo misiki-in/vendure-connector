@@ -6,7 +6,7 @@ Comprehensive guide for implementing payment gateways with Vendure Connector.
 
 ## Overview
 
-LiteKart supports multiple payment gateways out of the box. The `checkoutService` provides methods for:
+This connector supports multiple payment gateways out of the box. The `checkoutService` provides methods for:
 
 - ✅ **Razorpay** - India's leading payment gateway
 - ✅ **Stripe** - Global credit card payments
@@ -73,7 +73,7 @@ interface PaymentResult {
 RAZORPAY_KEY_ID = 'rzp_live_xxxxxxxxxxxx'
 RAZORPAY_KEY_SECRET = 'xxxxxxxxxxxxxxxxxxxx'
 
-// 2. Configure in LiteKart backend
+// 2. Configure in Vendure
 // - Go to Admin → Payment Methods
 // - Enable Razorpay
 // - Enter Key ID and Key Secret
