@@ -335,14 +335,31 @@ export class UserService extends BaseService {
         }
       }
     `
-    const data = await this.query<any>('/shop-api', document, {
-      input: {
-        firstName,
-        lastName,
-        emailAddress: email,
-        phoneNumber: phone
+    // Vendure's UpdateCustomerInput accepts title, firstName, lastName, phoneNumber and customFields
+    // — and nothing else. Sending `emailAddress` fails the whole mutation before it runs:
+    // `Field "emailAddress" is not defined by type "UpdateCustomerInput"`, which is what a profile
+    // save did. Changing an email is a separate, password-protected flow
+    // (requestUpdateCustomerEmailAddress -> emailed token -> updateCustomerEmailAddress), so it is
+    // refused here with an explanation rather than silently dropped.
+    if (email) {
+      const current = await this.query<{ activeCustomer?: { emailAddress?: string } | null }>(
+        '/shop-api',
+        '{ activeCustomer { emailAddress } }'
+      )
+      const currentEmail = current?.activeCustomer?.emailAddress
+      if (currentEmail && email.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) {
+        throw new Error(
+          'Changing your email address needs to be confirmed with your password and a verification email, so it cannot be updated from here.'
+        )
       }
-    })
+    }
+
+    const input: Record<string, unknown> = {}
+    if (firstName !== undefined && firstName !== null) input.firstName = firstName
+    if (lastName !== undefined && lastName !== null) input.lastName = lastName
+    if (phone !== undefined && phone !== null) input.phoneNumber = phone
+
+    const data = await this.query<any>('/shop-api', document, { input })
     return data?.updateCustomer as User
   }
 
