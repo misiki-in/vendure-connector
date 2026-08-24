@@ -414,8 +414,32 @@ export class CartService extends BaseService {
         setCustomerForOrder?: { errorCode?: string; message?: string };
       }>('/shop-api', SET_CUSTOMER_FOR_ORDER_MUTATION, { input: customerInput });
       const customerResult = customerRes?.setCustomerForOrder;
+
       if (customerResult?.errorCode) {
-        throw customerForOrderError(customerResult.errorCode, customerResult.message);
+        // Two of Vendure's refusals here are ordinary, not failures worth showing a shopper:
+        //
+        // NO_ACTIVE_ORDER_ERROR — there is no cart yet, so there is nothing to attach a customer to.
+        //   The storefront calls this right after login (`cartState.updateEmail`), which for a shopper
+        //   with an empty cart otherwise surfaced "There is no active Order associated with the
+        //   current session" as a login error.
+        //
+        // ALREADY_LOGGED_IN_ERROR — the shopper is signed in, and Vendure associates the order with
+        //   their account itself. The same code means something quite different when no customer is
+        //   attached to the session (typically the admin UI signed in on the same host), which is a
+        //   real dead end and still reported.
+        if (customerResult.errorCode === 'NO_ACTIVE_ORDER_ERROR') {
+          // nothing to do
+        } else if (customerResult.errorCode === 'ALREADY_LOGGED_IN_ERROR') {
+          const who = await this.query<{ activeCustomer?: { id: string } | null }>(
+            '/shop-api',
+            '{ activeCustomer { id } }'
+          );
+          if (!who?.activeCustomer?.id) {
+            throw customerForOrderError(customerResult.errorCode, customerResult.message);
+          }
+        } else {
+          throw customerForOrderError(customerResult.errorCode, customerResult.message);
+        }
       }
     }
 
