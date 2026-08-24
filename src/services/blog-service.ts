@@ -44,9 +44,8 @@ export class BlogService extends BaseService {
  */
 
   async list({ page = 1, q = '', sort = '-createdAt' }) {
-    return this.get<PaginatedResponse<Blog>>(
-      `/api/blogs?page=${page}&q=${q}&sort=${sort}`
-    )
+    // Blogs are Litekart CMS content with no Vendure equivalent.
+    return { data: [], count: 0, pageSize: 0, noOfPage: 0, page: 1 } as any
   }
 
   /**
@@ -62,7 +61,8 @@ export class BlogService extends BaseService {
  */
 
   async getOne(id: string) {
-    return this.get<Blog>(`/api/blogs/${id}`)
+    // Blogs are Litekart CMS content with no Vendure equivalent.
+    return {} as any
   }
 }
 

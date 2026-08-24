@@ -1,4 +1,5 @@
 import type { Menu } from './../types'
+import { readStaticStore } from './static-store'
 
 import { BaseService } from './base.service'
 
@@ -43,6 +44,11 @@ export class MenuService extends BaseService {
  * const result = await menuService.list({ page: 1 });
  */
   async list() {
+    // The nav reads `response.data` and filters on `menuId`; Vendure has no menu API, so serve the
+    // menus recorded with the storefront's store identity.
+    const staticStore = await readStaticStore()
+    if (staticStore) return { data: staticStore.menu ?? [] } as unknown as Menu[]
+
     return this.get<Menu[]>('/api/menu')
   }
 }

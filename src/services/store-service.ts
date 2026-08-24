@@ -1,4 +1,5 @@
 import { BaseService } from './base.service'
+import { readStaticStoreDetails } from './static-store'
 
 /**
  * Interface representing the store details returned by the API
@@ -89,6 +90,11 @@ export class StoreService extends BaseService {
     storeId,
     domain
   }: GetStoreParams): Promise<StoreDetails> {
+    // Vendure has no store record of its own; when the storefront has registered one, that is the
+    // authoritative answer and no HTTP call is made.
+    const staticStore = await readStaticStoreDetails()
+    if (staticStore) return staticStore
+
     if (!storeId && !domain) {
       throw new Error('Either storeId or domain must be provided')
     }

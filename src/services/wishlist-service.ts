@@ -41,7 +41,8 @@ export class WishlistService extends BaseService {
    * const wishlist = await wishlistService.fetchWishlist({ page: 1 });
    */
   async fetchWishlist({ q = '', sort = '', page = 1 }) {
-    return this.get<PaginatedResponse<Wishlist>>('/api/wishlists/me')
+    // Wishlists are a Litekart feature; Vendure has no such concept.
+    return { data: [], count: 0 } as any
   }
 
   /**
@@ -67,9 +68,8 @@ export class WishlistService extends BaseService {
     productId: string
     variantId: string
   }) {
-    return this.get<boolean>(
-      `/api/wishlists/me/check?productId=${productId}&variantId=${variantId}`
-    )
+    // Wishlists are a Litekart feature; Vendure has no such concept.
+    return false as any
   }
 
   /**
@@ -82,7 +82,8 @@ export class WishlistService extends BaseService {
    * }]);
    */
   async checkWishlistInBulk(ids: { productId: string, variantId: string }[]) {
-    return this.post<{ productId: string, variantId: string, exists: boolean }[]>('/api/wishlists/me/bulk-check', ids)
+    // Wishlists are a Litekart feature; Vendure has no such concept.
+    return [] as any
   }
   /**
    * Toggles a product's presence in the user's wishlist
@@ -109,10 +110,8 @@ export class WishlistService extends BaseService {
     productId: string
     variantId: string
   }) {
-    return this.post<Wishlist>('/api/wishlists/me/toggle', {
-      productId,
-      variantId
-    })
+    // Wishlists are a Litekart feature; Vendure has no such concept.
+    throw new Error('Wishlist is not available on this store.')
   }
 }
 

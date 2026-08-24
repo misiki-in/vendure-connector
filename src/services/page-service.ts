@@ -43,9 +43,9 @@ export class PageService extends BaseService {
  * const result = await pageService.list({ page: 1 });
  */
   async list({ page = 1, search = '', sort = '-createdAt' }) {
-    return this.get<Page[]>(
-      `/api/pages?page=${page}&search=${search}&sort=${sort}`
-    )
+    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // already render their empty states.
+    return [] as any
   }
 
   /**
@@ -64,9 +64,9 @@ export class PageService extends BaseService {
  */
 
   async listLatestPages({}) {
-    return this.get<PaginatedResponse<Page>>(
-      '/api/pages?sort=-updatedAt&limit=10'
-    )
+    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // already render their empty states.
+    return { data: [], count: 0, pageSize: 0, noOfPage: 0, page: 1 } as any
   }
 
   /**
@@ -82,7 +82,9 @@ export class PageService extends BaseService {
  */
 
   async getOne(id: string) {
-    return this.get<Page>(`/api/pages/${id}`)
+    // Pages are Litekart CMS content; Vendure has no equivalent, and the routes that use these
+    // already render their empty states.
+    return {} as any
   }
 }
 

@@ -43,3 +43,11 @@ export * from './upload-service'
 export * from './varni/custom-design-service'
 export * from './varni/custom-product-service'
 export * from './base.service'
+
+export * from './static-store'
+
+/**
+ * The marker every storefront reads to tell which backend is active — for env checks, health
+ * probes and features that only exist behind Litekart.
+ */
+export const connectorName = 'vendure'

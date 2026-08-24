@@ -43,9 +43,8 @@ export class CouponService extends BaseService {
  * const result = await couponService.listCoupons({ page: 1 });
  */
   async listCoupons({ page = 1, q = '', sort = '-createdAt' }) {
-    return this.get<PaginatedResponse<Coupon>>(
-      `/api/coupons?page=${page}&q=${q}&sort=${sort}`
-    )
+    // Vendure applies coupon codes at the cart, but exposes no list of them to a shopper.
+    return { data: [], count: 0 } as any
   }
 
   async searchCoupons({ page = 1, q = '', sort = '-createdAt' }) {
@@ -66,8 +65,10 @@ export class CouponService extends BaseService {
  * const coupon = await couponService.getCoupon('123');
  */
 
+  // Coupon records are admin data on Vendure; a shopper only ever applies a code to their order.
   async getCoupon(id: string) {
-    return this.get<Coupon>(`/api/coupons/${id}`)
+    throw new Error('Coupons cannot be read individually on this store.')
+    return undefined as unknown as Coupon
   }
 
   /**
@@ -84,16 +85,17 @@ export class CouponService extends BaseService {
  * });
  */
 
-  async createCoupon(coupons: Omit<Coupon, 'id'>) {
-    return this.post<Coupon>('/api/coupons', coupons)
+  async createCoupon(_coupons: Omit<Coupon, 'id'>) {
+    throw new Error('Coupons are managed in the Vendure admin, not from the storefront.')
+    return undefined as unknown as Coupon
   }
 
   async patchCoupon(id: string, coupons: Partial<Coupon>) {
-    return this.put<Coupon>(`/api/coupons/${id}`, coupons)
+    throw new Error('Coupons are managed in the Vendure admin, not from the storefront.')
   }
 
   async deleteCoupon(id: string) {
-    return this.delete<Coupon>(`/api/coupons/${id}`)
+    throw new Error('Coupons are managed in the Vendure admin, not from the storefront.')
   }
 }
 
