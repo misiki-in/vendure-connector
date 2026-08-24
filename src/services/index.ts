@@ -51,3 +51,4 @@ export * from './static-store'
  * probes and features that only exist behind Litekart.
  */
 export const connectorName = 'vendure'
+export * from './rest-guard'
