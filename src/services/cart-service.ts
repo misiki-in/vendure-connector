@@ -88,11 +88,27 @@ const SET_BILLING_ADDRESS_MUTATION = `
 const SET_CUSTOMER_FOR_ORDER_MUTATION = `
   mutation SetCustomerForOrder($input: CreateCustomerInput!) {
     setCustomerForOrder(input: $input) {
-      ... on Order { id }
+      ... on Order { id customer { id } }
       ... on ErrorResult { errorCode message }
     }
   }
 `;
+
+// Vendure will not transition an order to ArrangingPayment without a customer, and setCustomerForOrder
+// is the only way one gets attached. Dropping its result on the floor turned a refusal here into
+// `State Transition Failed: Cannot transition Order to the "ArrangingPayment" state without Customer
+// details` at the payment step, with nothing pointing at the cause.
+export const customerForOrderError = (errorCode: string, message?: string) =>
+  new Error(
+    errorCode === 'EMAIL_ADDRESS_CONFLICT_ERROR'
+      ? 'That email address already has an account on this store. Log in to place the order.'
+      : errorCode === 'ALREADY_LOGGED_IN_ERROR'
+        ? // Usually the Vendure admin UI signed in on the same host: the shop API shares its cookie,
+          // `activeCustomer` is null because an administrator has no Customer record, and every guest
+          // order silently ends up with none.
+          'Another Vendure session is signed in on this browser — often the admin UI on the same host. Sign out there or use a private window, then retry.'
+        : message || `Could not attach your details to this order (${errorCode}).`
+  );
 
 const TRANSITION_ORDER_TO_STATE_MUTATION = `
   mutation TransitionOrderToState($state: String!) {
@@ -394,7 +410,13 @@ export class CartService extends BaseService {
         lastName: shippingAddress?.lastName || billingAddress?.lastName || '',
         phoneNumber: phone || shippingAddress?.phone || billingAddress?.phone || ''
       };
-      await this.query('/shop-api', SET_CUSTOMER_FOR_ORDER_MUTATION, { input: customerInput });
+      const customerRes = await this.query<{
+        setCustomerForOrder?: { errorCode?: string; message?: string };
+      }>('/shop-api', SET_CUSTOMER_FOR_ORDER_MUTATION, { input: customerInput });
+      const customerResult = customerRes?.setCustomerForOrder;
+      if (customerResult?.errorCode) {
+        throw customerForOrderError(customerResult.errorCode, customerResult.message);
+      }
     }
 
     if (shippingAddress) {

@@ -1,6 +1,7 @@
 import type { User } from './../types'
 
 import { BaseService } from './base.service'
+import { UserService } from './user-service'
 
 /**
  * ProfileService provides functionality for working with specific resources
@@ -39,8 +40,10 @@ export class ProfileService extends BaseService {
  * // Example usage
  * const profile = await profileService.getOne('123');
  */
+  // Vendure-native: `activeCustomer`, via the UserService that already implements it. The Litekart
+  // path this used (`/api/users/me`) does not exist on a Vendure server.
   async getOne() {
-    return this.get<User>('/api/users/me')
+    return new UserService(this.getFetch()).getMe() as Promise<User>
   }
 
   /**
@@ -57,8 +60,10 @@ export class ProfileService extends BaseService {
  * });
  */
 
+  // Vendure-native: `updateCustomer`. `updateProfile` requires an `id` its implementation never
+  // reads, and the profile shape from getMe has none, so a blank one satisfies the signature.
   async save(blog: Omit<User, 'id'>) {
-    return this.patch<User>('/api/users', blog)
+    return new UserService(this.getFetch()).updateProfile({ id: '', ...blog } as any) as Promise<User>
   }
 }
 

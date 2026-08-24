@@ -40,6 +40,15 @@ const ELIGIBLE_SHIPPING_METHODS_QUERY = `
  * CheckoutService provides functionality for managing checkout processes
  * in the Litekart platform, now adapted for the Vendure Shop API.
  */
+// Read before payment: once payment settles the order is no longer the active one, and its code is
+// the only handle the confirmation page has. The customer check is the precondition Vendure enforces
+// on the ArrangingPayment transition.
+const ACTIVE_ORDER_SUMMARY_QUERY = `
+  query ActiveOrderSummary {
+    activeOrder { id code customer { id } }
+  }
+`;
+
 export class CheckoutService extends BaseService {
   private static instance: CheckoutService
 
@@ -54,17 +63,41 @@ export class CheckoutService extends BaseService {
   }
 
   private async prepareForPayment(): Promise<any> {
+    // Vendure refuses the ArrangingPayment transition without a customer, and the error it returns
+    // names none of that. Check it first, and read the code while this is still the active order —
+    // after payment settles it is not, and ADD_PAYMENT_TO_ORDER returns no order number, which left
+    // storefronts building `/checkout/success?...&order_no=undefined`.
+    const summary = await this.query<{
+      activeOrder?: { id: string; code: string; customer?: { id: string } | null } | null;
+    }>('/shop-api', ACTIVE_ORDER_SUMMARY_QUERY);
+    const activeOrder = summary?.activeOrder;
+    if (activeOrder && !activeOrder.customer?.id) {
+      throw new Error(
+        'This order has no email address yet. Collect the shopper\'s email (setCustomerForOrder) before starting payment.'
+      );
+    }
+    this.activeOrderCode = activeOrder?.code || '';
+
     const res = await this.query<any>('/shop-api', TRANSITION_ORDER_TO_STATE_MUTATION, { state: 'ArrangingPayment' });
     const result = res?.transitionOrderToState;
     if (result?.errorCode) {
       if (result.errorCode === 'ORDER_STATE_TRANSITION_ERROR' && result.fromState === 'ArrangingPayment' && result.toState === 'ArrangingPayment') {
         const orderRes = await this.query<any>('/shop-api', '{ activeOrder { id state code totalWithTax } }');
-        return orderRes?.activeOrder;
+        return this.withOrderCode(orderRes?.activeOrder);
       }
       const detailedError = result.transitionError || result.message;
       throw new Error(`State Transition Failed: ${detailedError}`);
     }
-    return result;
+    return this.withOrderCode(result);
+  }
+
+  // The order number every storefront reads off a checkout result, under the names it looks for.
+  private activeOrderCode = '';
+
+  private withOrderCode(result: any) {
+    const code = result?.code || this.activeOrderCode;
+    if (!code) return result;
+    return { ...(result ?? {}), code, orderNo: code, order_no: code };
   }
 
   private async executePayment(method: string, metadata: any = {}): Promise<any> {
@@ -81,12 +114,12 @@ export class CheckoutService extends BaseService {
 
   async checkoutCOD({ cartId, origin }: { cartId: string; origin: string }) {
     await this.prepareForPayment();
-    return this.executePayment('standard-payment', { origin });
+    return this.withOrderCode(await this.executePayment('standard-payment', { origin }));
   }
 
   async checkoutPOS({ cartId, origin }: { cartId: string; origin: string }) {
     await this.prepareForPayment();
-    return this.executePayment('pos', { origin });
+    return this.withOrderCode(await this.executePayment('pos', { origin }));
   }
 
   async captureRazorpayPayment({
@@ -96,7 +129,7 @@ export class CheckoutService extends BaseService {
     razorpay_order_id: string
     razorpay_payment_id: string
   }) {
-    return this.executePayment('razorpay', { razorpay_order_id, razorpay_payment_id });
+    return this.withOrderCode(await this.executePayment('razorpay', { razorpay_order_id, razorpay_payment_id }));
   }
 
   async checkoutPhonepe({
