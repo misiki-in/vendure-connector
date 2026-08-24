@@ -1,6 +1,6 @@
 # Search & Discovery Guide
 
-Complete guide to implementing search with LiteKart's Meilisearch integration.
+Complete guide to implementing product search with the Vendure Connector.
 
 ---
 
@@ -23,7 +23,7 @@ Complete guide to implementing search with LiteKart's Meilisearch integration.
 
 ## Overview
 
-LiteKart uses **Meilisearch** for instant, typo-tolerant product search. The connector provides two main search services:
+The connector exposes two search services. On Vendure, **only `searchService` works** — it queries Vendure's Shop API over GraphQL. `meilisearchService` targets a REST search proxy that a Vendure store does not run.
 
 ### `searchService` - High-Level API
 Converts URL parameters, formats results, handles errors gracefully.
@@ -35,6 +35,13 @@ const results = await searchService.searchWithQuery('red shoes')
 ```
 
 ### `meilisearchService` - Low-Level API
+
+> **Not available on Vendure.** `search()` addresses `/api/ms/products` and
+> `searchAutoComplete()` addresses `/api/ms-autocomplete/products`. Both are storefront REST
+> paths with no Vendure equivalent, so `search()` throws and `searchAutoComplete()` resolves
+> empty. Use `searchService` instead. The rest of this guide applies only to a REST backend
+> that fronts Meilisearch.
+
 Direct Meilisearch access for advanced use cases.
 
 ```typescript
@@ -51,9 +58,14 @@ const results = await meilisearchService.search({
 
 ## Getting Started
 
+> **Vendure users can skip this section.** Vendure serves product search from its own Shop
+> API, so there is no Meilisearch instance to run or index to sync. `searchService` works
+> against a stock Vendure server with no extra setup. The setup below applies to a REST
+> backend that fronts Meilisearch.
+
 ### Prerequisites
 
-1. **Meilisearch running** (separate from LiteKart)
+1. **Meilisearch running** (separate from the backend)
 
 ```bash
 # Install Meilisearch
@@ -66,9 +78,9 @@ docker run -it --rm \
 # Or download from https://www.meilisearch.com/download
 ```
 
-2. **Configure LiteKart**
+2. **Configure the backend**
 
-In your LiteKart admin panel:
+In the backend admin panel:
 - Go to Settings → Search
 - Set Meilisearch host: `http://localhost:7700`
 - Set API key (if configured)
@@ -77,9 +89,9 @@ In your LiteKart admin panel:
 
 3. **Sync Data**
 
-Meilisearch needs a product index. This is handled by LiteKart admin:
+Meilisearch needs a product index. This is handled by the backend admin:
 ```bash
-# From LiteKart backend
+# From the REST backend
 npm run sync:search
 # or trigger via admin panel → Settings → Search → Sync Now
 ```
@@ -374,7 +386,7 @@ const url = `/search?${params.toString()}`
 
 ### Attribute-Based Filtering
 
-Product attributes defined in LiteKart admin are filterable:
+Product attributes defined in the backend admin are filterable:
 
 ```typescript
 // User selects color=red, size=M
@@ -545,7 +557,7 @@ const settings = {
 ### Boosting Relevance
 
 ```javascript
-// In your LiteKart backend (Node.js)
+// In your REST backend (Node.js)
 
 // Sync products with boosted fields
 const productDocs = products.map(product => ({
