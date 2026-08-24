@@ -1,5 +1,6 @@
 import type { Collection, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
+import { fromMinorUnits } from '../utils/money'
 
 const GET_COLLECTIONS_QUERY = `
   query GetCollections($options: CollectionListOptions) {
@@ -16,14 +17,30 @@ const GET_COLLECTIONS_QUERY = `
   }
 `;
 
+// Vendure resolves a collection by id or by slug; the storefront links collections by slug
+// (`/collections/<slug>`), so both arguments are declared and exactly one is sent.
 const GET_COLLECTION_QUERY = `
-  query GetCollection($id: ID!) {
-    collection(id: $id) {
+  query GetCollection($id: ID, $slug: String) {
+    collection(id: $id, slug: $slug) {
       id
       name
       slug
       description
       featuredAsset { preview }
+      productVariants(options: { take: 100 }) {
+        totalItems
+        items {
+          id
+          priceWithTax
+          currencyCode
+          product {
+            id
+            name
+            slug
+            featuredAsset { preview }
+          }
+        }
+      }
     }
   }
 `;
@@ -58,13 +75,41 @@ export class CollectionService extends BaseService {
       isActive: true,
       isFeatured: false,
       userId: '',
-      productCount: 0, // Mocked as discussed
       thumbnail: item.featuredAsset?.preview || null,
       metaTitle: null,
       metaDescription: null,
+      // The storefront renders a collection's products as `collectionvalues[].products` — the shape
+      // Litekart returns, where each value points at one product. Vendure holds the membership on
+      // variants, so they are folded back to one entry per product (a product with three variants in
+      // the collection must not appear three times).
+      collectionvalues: this.mapCollectionProducts(item?.productVariants?.items),
+      productCount: item?.productVariants?.totalItems ?? 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
+    } as unknown as Collection
+  }
+
+  private mapCollectionProducts(variants: any[] | undefined) {
+    const byProduct = new Map<string, any>();
+
+    for (const variant of variants || []) {
+      const product = variant?.product;
+      if (!product?.id || byProduct.has(product.id)) continue;
+
+      byProduct.set(product.id, {
+        products: {
+          id: product.id,
+          name: product.name,
+          title: product.name,
+          slug: product.slug,
+          thumbnail: product.featuredAsset?.preview || null,
+          price: fromMinorUnits(variant?.priceWithTax, variant?.currencyCode),
+          mrp: fromMinorUnits(variant?.priceWithTax, variant?.currencyCode)
+        }
+      });
     }
+
+    return [...byProduct.values()];
   }
 
   async list({ page = 1, q = '', sort = '-createdAt' }) {
@@ -94,12 +139,24 @@ export class CollectionService extends BaseService {
     } as PaginatedResponse<Collection>
   }
 
-  async getOne(id: string) {
-    const res = await this.query<any>('/shop-api', GET_COLLECTION_QUERY, { id });
-    const item = res?.collection;
-    
+  async getOne(idOrSlug: string) {
+    // Vendure ids are numeric by default, or UUIDs when configured that way; anything else is a slug.
+    const looksLikeId =
+      /^[0-9]+$/.test(idOrSlug) ||
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+
+    const lookup = async (variables: Record<string, string>) => {
+      const res = await this.query<any>('/shop-api', GET_COLLECTION_QUERY, variables);
+      return res?.collection;
+    };
+
+    // Try the shape the value looks like, then the other — a store may well use all-digit slugs.
+    const item =
+      (await lookup(looksLikeId ? { id: idOrSlug } : { slug: idOrSlug })) ??
+      (await lookup(looksLikeId ? { slug: idOrSlug } : { id: idOrSlug }));
+
     if (!item) {
-      throw new Error(`Collection with ID ${id} not found`);
+      throw new Error(`Collection ${idOrSlug} not found`);
     }
 
     return this.mapVendureCollection(item)

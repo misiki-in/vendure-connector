@@ -26,6 +26,14 @@ const SEARCH_QUERY = `
         }
       }
       totalItems
+      collections {
+        count
+        collection {
+          id
+          name
+          slug
+        }
+      }
       facetValues {
         count
         facetValue {
@@ -137,10 +145,24 @@ export class SearchService extends BaseService {
       };
     });
 
-    // Extract facets
-    const categories = facetValues
-      .filter((f: any) => f.facetValue.facet.name.toLowerCase() === 'category')
-      .map((f: any) => ({ name: f.facetValue.name, count: f.count }));
+    // Extract facets.
+    //
+    // Categories come from the collections facet, not from facet values: the storefront's filter
+    // navigates to `/${category.slug || category.name}`, and a facet value has no slug — so a
+    // collection called "Electronics" sent the shopper to `/Electronics`, which 404s. A collection
+    // carries the real slug. Facet values named "category" remain the fallback for stores that model
+    // categories that way.
+    const collections = vendureResult?.search?.collections || [];
+    const categories = collections.length
+      ? collections.map((c: any) => ({
+          id: c.collection?.id,
+          name: c.collection?.name,
+          slug: c.collection?.slug,
+          count: c.count
+        }))
+      : facetValues
+          .filter((f: any) => f.facetValue.facet.name.toLowerCase() === 'category')
+          .map((f: any) => ({ name: f.facetValue.name, count: f.count }));
       
     const tags = facetValues
       .filter((f: any) => f.facetValue.facet.name.toLowerCase() === 'tag')
