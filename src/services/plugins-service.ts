@@ -3,8 +3,7 @@ import type { Plugins, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * PluginService provides functionality for working with specific resources
- * in the Litekart API.
+ * PluginService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

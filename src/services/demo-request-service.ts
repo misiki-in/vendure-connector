@@ -3,8 +3,7 @@ import type { Demo } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * DemoRequestService provides functionality for working with specific resources
- * in the Litekart API.
+ * DemoRequestService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

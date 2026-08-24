@@ -3,8 +3,7 @@ import type { PaginatedResponse, Wishlist } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * WishlistService provides functionality for working with specific resources
- * in the Litekart API.
+ * WishlistService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Managing user wishlists
@@ -41,7 +40,7 @@ export class WishlistService extends BaseService {
    * const wishlist = await wishlistService.fetchWishlist({ page: 1 });
    */
   async fetchWishlist({ q = '', sort = '', page = 1 }) {
-    // Wishlists are a Litekart feature; Vendure has no such concept.
+    // Wishlists have no equivalent in Vendure.
     return { data: [], count: 0 } as any
   }
 
@@ -68,7 +67,7 @@ export class WishlistService extends BaseService {
     productId: string
     variantId: string
   }) {
-    // Wishlists are a Litekart feature; Vendure has no such concept.
+    // Wishlists have no equivalent in Vendure.
     return false as any
   }
 
@@ -82,7 +81,7 @@ export class WishlistService extends BaseService {
    * }]);
    */
   async checkWishlistInBulk(ids: { productId: string, variantId: string }[]) {
-    // Wishlists are a Litekart feature; Vendure has no such concept.
+    // Wishlists have no equivalent in Vendure.
     return [] as any
   }
   /**
@@ -110,7 +109,7 @@ export class WishlistService extends BaseService {
     productId: string
     variantId: string
   }) {
-    // Wishlists are a Litekart feature; Vendure has no such concept.
+    // Wishlists have no equivalent in Vendure.
     throw new Error('Wishlist is not available on this store.')
   }
 }

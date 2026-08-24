@@ -63,8 +63,8 @@ type UpdateAddressParams = Partial<Omit<Address, 'id' | 'userId' | 'createdAt' |
 
 
 /**
- * AddressService provides functionality for managing user addresses
- * in the Litekart platform, now adapted for Vendure API.
+ * AddressService provides functionality for managing user addresses,
+ * adapted for the Vendure API.
  */
 export class AddressService extends BaseService {
   private static instance: AddressService

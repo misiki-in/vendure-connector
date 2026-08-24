@@ -48,7 +48,7 @@ export * from './static-store'
 
 /**
  * The marker every storefront reads to tell which backend is active — for env checks, health
- * probes and features that only exist behind Litekart.
+ * probes and features that only exist behind a particular backend.
  */
 export const connectorName = 'vendure'
 export * from './rest-guard'

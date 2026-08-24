@@ -1,6 +1,6 @@
-# LiteKart Connector Documentation Index
+# Vendure Connector Documentation Index
 
-Welcome! This directory contains comprehensive documentation for the LiteKart Connector SDK.
+Welcome! This directory contains comprehensive documentation for the Vendure Connector SDK.
 
 ## Getting Started
 
@@ -90,7 +90,7 @@ Welcome! This directory contains comprehensive documentation for the LiteKart Co
 
 ## Need Help?
 
-- **Issues**: https://github.com/misiki/litekart-connector/issues
+- **Issues**: https://github.com/misiki-in/vendure-connector/issues
 - **Documentation**: https://litekart.in/docs/connector
 - **Discord**: https://discord.gg/litekart
 - **Email**: support@litekart.in

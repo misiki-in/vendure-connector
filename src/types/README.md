@@ -1,6 +1,6 @@
-# Litekart Connector Type System
+# Vendure Connector Type System
 
-This directory contains all the TypeScript type definitions used in the Litekart Connector.
+This directory contains all the TypeScript type definitions used in the Vendure Connector.
 
 ## Organization
 

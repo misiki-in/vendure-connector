@@ -1,7 +1,6 @@
 import { isRestPath, resolveRestLocally } from './rest-guard'
 /**
- * BaseService provides core HTTP functionality for all service classes
- * in the Litekart API client.
+ * BaseService provides core HTTP functionality for all service classes in this connector.
  *
  * This service helps with:
  * - Performing standardized HTTP requests (GET, POST, PUT, PATCH, DELETE)

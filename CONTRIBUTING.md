@@ -1,6 +1,6 @@
-# Contributing to LiteKart Connector
+# Contributing to Vendure Connector
 
-Thank you for your interest in contributing to the LiteKart Connector! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to the Vendure Connector! This document provides guidelines and information for contributors.
 
 ## Table of Contents
 
@@ -33,14 +33,14 @@ This project adheres to a code of conduct. By participating, you are expected to
 - **Node.js** 18+ recommended
 - **npm** or **yarn** or **pnpm** or **bun**
 - **TypeScript** knowledge
-- Basic understanding of LiteKart API
+- Basic understanding of the Vendure Shop API
 
 ### Setup
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR-USERNAME/litekart-connector.git
-cd litekart-connector
+git clone https://github.com/YOUR-USERNAME/vendure-connector.git
+cd vendure-connector
 
 # 2. Install dependencies
 npm install
@@ -58,7 +58,7 @@ npm run dev
 ### Project Structure
 
 ```
-litekart-connector/
+vendure-connector/
 ├── src/
 │   ├── services/          # API service implementations
 │   │   ├── base.service.ts     # Base HTTP service
@@ -436,7 +436,7 @@ Brief description of changes.
 ## How to Test
 
 ```typescript
-import { myNewService } from '@misiki/litekart-connector'
+import { myNewService } from '@misiki/vendure-connector'
 
 const result = await myNewService.newMethod({ ... })
 console.log(result)
@@ -475,7 +475,7 @@ Maintainers handle releases:
 
 - **Discord**: https://discord.gg/litekart
 - **Email**: support@litekart.in
-- **Issues**: https://github.com/misiki/litekart-connector/issues
+- **Issues**: https://github.com/misiki-in/vendure-connector/issues
 
 ---
 

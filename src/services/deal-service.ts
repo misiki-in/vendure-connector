@@ -3,8 +3,7 @@ import type { Deal, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * DealService provides functionality for working with specific resources
- * in the Litekart API.
+ * DealService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

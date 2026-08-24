@@ -3,8 +3,7 @@ import type { Init } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * InitService provides functionality for working with specific resources
- * in the Litekart API.
+ * InitService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

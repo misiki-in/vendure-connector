@@ -3,8 +3,7 @@ import type { Coupon, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * CouponService provides functionality for working with specific resources
- * in the Litekart API.
+ * CouponService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

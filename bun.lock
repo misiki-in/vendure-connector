@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "@misiki/litekart-connector",
+      "name": "@misiki/vendure-connector",
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
         "@types/node": "^22.13.1",

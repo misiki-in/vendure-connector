@@ -4,8 +4,7 @@ import { readStaticStore } from './static-store'
 import { BaseService } from './base.service'
 
 /**
- * MenuService provides functionality for working with specific resources
- * in the Litekart API.
+ * MenuService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

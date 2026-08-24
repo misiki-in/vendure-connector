@@ -3,8 +3,7 @@ import type { Currency, PaginatedResponse } from './../types'
 import { BaseService } from './base.service'
 
 /**
- * CurrencyService provides functionality for working with specific resources
- * in the Litekart API.
+ * CurrencyService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

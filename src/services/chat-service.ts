@@ -1,8 +1,7 @@
 import { BaseService } from './base.service'
 
 /**
- * ChatService provides functionality for working with specific resources
- * in the Litekart API.
+ * ChatService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1

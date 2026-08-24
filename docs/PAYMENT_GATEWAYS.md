@@ -1,6 +1,6 @@
 # Payment Gateways Guide
 
-Comprehensive guide for implementing payment gateways with LiteKart Connector.
+Comprehensive guide for implementing payment gateways with Vendure Connector.
 
 ---
 
@@ -88,7 +88,7 @@ RAZORPAY_KEY_SECRET = 'xxxxxxxxxxxxxxxxxxxx'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { checkoutService } from '@misiki/litekart-connector'
+import { checkoutService } from '@misiki/vendure-connector'
 import Razorpay from 'razorpay'  // npm i razorpay
 
 export default function RazorpayCheckout() {
@@ -308,7 +308,7 @@ export async function POST(req: NextApiRequest, res: NextApiResponse) {
 ### Checkout Flow
 
 ```typescript
-import { checkoutService } from '@misiki/litekart-connector'
+import { checkoutService } from '@misiki/vendure-connector'
 
 async function initiatePhonePeCheckout(cartId: string) {
   try {

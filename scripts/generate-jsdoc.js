@@ -21,7 +21,7 @@ const SERVICES_DIR = path.join(__dirname, '../src/services')
 // Template for service class JSDoc
 const SERVICE_TEMPLATE = (serviceName, serviceDescription) => `/**
  * ${serviceName} provides functionality for ${
-  serviceDescription || 'interacting with the Litekart API'
+  serviceDescription || 'interacting with the Vendure Shop API'
 }
  *
  * This service helps with:
@@ -161,7 +161,7 @@ function addJSDocToFile(filePath) {
 
     // Update the service class JSDoc if needed
     if (!content.includes('This service helps with:')) {
-      const serviceDescription = `managing ${resourceName.toLowerCase()} data in the Litekart platform`
+      const serviceDescription = `managing ${resourceName.toLowerCase()} data via the Vendure Shop API`
       const serviceJSDoc = SERVICE_TEMPLATE(className, serviceDescription)
       content = content.replace(
         /\/\*\*[\s\S]*?\*\/\s*export\s+class\s+\w+\s+extends\s+BaseService|export\s+class\s+\w+\s+extends\s+BaseService/,

@@ -236,7 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 1. Replace direct service instantiation with singleton imports:
    ```diff
 - const productService = new ProductService()
-+ import { productService } from '@misiki/litekart-connector'
++ import { productService } from '@misiki/vendure-connector'
    ```
 
 2. Handle paginated responses properly:

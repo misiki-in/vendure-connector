@@ -130,8 +130,8 @@ const SET_ORDER_SHIPPING_METHOD_MUTATION = `
 `;
 
 /**
- * CartService provides functionality for managing shopping carts
- * in the Litekart platform, now powered by Vendure.
+ * CartService provides functionality for managing shopping carts,
+ * powered by Vendure.
  *
  * This service helps with:
  * - Retrieving cart data and contents

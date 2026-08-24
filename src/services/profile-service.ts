@@ -4,8 +4,7 @@ import { BaseService } from './base.service'
 import { UserService } from './user-service'
 
 /**
- * ProfileService provides functionality for working with specific resources
- * in the Litekart API.
+ * ProfileService provides functionality for working with specific resources.
  *
  * This service helps with:
  * - Main functionality point 1
@@ -40,8 +39,7 @@ export class ProfileService extends BaseService {
  * // Example usage
  * const profile = await profileService.getOne('123');
  */
-  // Vendure-native: `activeCustomer`, via the UserService that already implements it. The Litekart
-  // path this used (`/api/users/me`) does not exist on a Vendure server.
+  // Vendure-native: `activeCustomer`, via the UserService that already implements it. The REST  // path this used (`/api/users/me`) does not exist on a Vendure server.
   async getOne() {
     return new UserService(this.getFetch()).getMe() as Promise<User>
   }
